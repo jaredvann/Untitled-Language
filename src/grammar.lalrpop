@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use newlang::ast::{Expr, FnCall, FnDecl, Grammar, Value, VarDecl, VarRef};
+use untitled_language::ast::{Expr, FnCall, FnDecl, Grammar, Value, VarDecl, VarRef};
 use lalrpop_util::ErrorRecovery;
 
 grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, Token<'input>, &'static str>>);

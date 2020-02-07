@@ -5,9 +5,9 @@ lalrpop_mod!(pub grammar);
 
 use std::collections::HashMap;
 
-use newlang::ast;
-use newlang::stdlib;
-use newlang::typesys::*;
+use untitled_language::ast;
+use untitled_language::stdlib;
+use untitled_language::typesys::*;
 
 pub struct Session {
     parser: grammar::GrammarParser,
