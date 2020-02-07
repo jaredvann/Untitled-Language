@@ -1,0 +1,12 @@
+[package]
+name = "Untitled-Language"
+version = "0.1.0"
+authors = ["Jared Vann <jared@vann.me>"]
+edition = "2018"
+
+[build-dependencies]
+lalrpop = "0.17.2"
+
+[dependencies]
+lalrpop-util = "0.17.2"
+regex = "1.3.4"
