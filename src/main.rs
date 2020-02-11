@@ -57,6 +57,14 @@ impl Session {
     //     Ok(())
     // }
 
+    pub fn typecheck_string(&self, string: &str) -> Result<Option<&Type>, String> {
+        let mut errors = Vec::new();
+
+        let parse_tree = self.parser.parse(&mut errors, string).unwrap();
+
+        self.typecheck(&parse_tree)
+    }
+
     pub fn typecheck(&self, grammar: &ast::Grammar) -> Result<Option<&Type>, String> {
         match grammar {
             ast::Grammar::Expr(x) => self.typecheck_expr(&x).map(|x| Some(x)),
@@ -100,7 +108,7 @@ impl Session {
                 let expected_signature = format!("{}({})", &fncall.name, arg_types.join(", "));
 
                 Err(format!("Could not find matching type signature for function {}", &expected_signature))
-            },
+            }
         }
     }
 
@@ -192,13 +200,43 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parser() {
+        let parser = grammar::GrammarParser::new();
+
+        assert_eq!(
+            parser.parse(&mut Vec::new(), "True").unwrap(),
+            ast::Grammar::Expr(Box::new(ast::Expr::Value(ast::Value::Bool(true))))
+        );
+
+        assert_eq!(
+            parser.parse(&mut Vec::new(), "4").unwrap(),
+            ast::Grammar::Expr(Box::new(ast::Expr::Value(ast::Value::Int(4))))
+        );
+
+        assert_eq!(
+            parser.parse(&mut Vec::new(), "2.0").unwrap(),
+            ast::Grammar::Expr(Box::new(ast::Expr::Value(ast::Value::Float(2.0))))
+        );
+    }
+
+    #[test]
+    fn test_type_system() {
+        let session = Session::new();
+
+        assert_eq!(session.typecheck_string("True").unwrap(), Some(&Type::new("Bool")));
+        assert_eq!(session.typecheck_string("2.0").unwrap(), Some(&Type::new("Float")));
+        assert_eq!(session.typecheck_string("4").unwrap(), Some(&Type::new("Int")));
+
+        assert_eq!(session.typecheck_string("4 == 4").unwrap(), Some(&Type::new("Bool")));
+        assert_eq!(session.typecheck_string("2 + 6").unwrap(), Some(&Type::new("Int")));
+    }
+
+    #[test]
     fn test_variable_assignment() {
         let mut session = Session::new();
 
         session.execute("let a = 2.0").unwrap();
-        session.execute("let b = 3.0").unwrap();
-
-        assert_eq!(session.execute("a + b").unwrap().as_float(), 5.0);
+        assert_eq!(session.execute("a").unwrap().as_float(), 2.0);
     }
 
     #[test]
@@ -226,5 +264,15 @@ mod tests {
 
         assert_eq!(session.execute("4 != 4").unwrap().as_bool(), false);
         assert_eq!(session.execute("4 != 3").unwrap().as_bool(), true);
+    }
+
+    #[test]
+    fn test_math() {
+        let mut session = Session::new();
+
+        assert_eq!(session.execute("1 + 2").unwrap().as_int(), 3);
+        assert_eq!(session.execute("1 * 2").unwrap().as_int(), 2);
+        assert_eq!(session.execute("1 ** 2").unwrap().as_int(), 1);
+        assert_eq!(session.execute("1 - 2").unwrap().as_int(), -1);
     }
 }

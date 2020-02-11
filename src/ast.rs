@@ -1,12 +1,13 @@
 use std::fmt::{Debug, Error, Formatter};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Grammar {
     Expr(Box<Expr>),
     FnDecl(Box<FnDecl>),
     VarDecl(Box<VarDecl>),
 }
 
+#[derive(PartialEq)]
 pub struct FnDecl {
     pub name: String,
     pub proc: bool,
@@ -20,6 +21,7 @@ impl Debug for FnDecl {
     }
 }
 
+#[derive(PartialEq)]
 pub struct VarDecl {
     pub name: String,
     pub mutable: bool,
@@ -32,6 +34,7 @@ impl Debug for VarDecl {
     }
 }
 
+#[derive(PartialEq)]
 pub struct VarRef {
     pub name: String,
 }
@@ -42,6 +45,7 @@ impl Debug for VarRef {
     }
 }
 
+#[derive(PartialEq)]
 pub struct FnCall {
     pub name: String,
     pub args: Vec<Box<Expr>>,
@@ -61,7 +65,7 @@ impl Debug for FnCall {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Value {
     Bool(bool),
     Float(f64),
@@ -107,6 +111,7 @@ impl Debug for Value {
     }
 }
 
+#[derive(PartialEq)]
 pub enum Expr {
     VarRef(Box<VarRef>),
     Value(Value),
