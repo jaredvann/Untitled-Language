@@ -25,7 +25,7 @@ pub Grammar: Grammar = {
 FnParamDef: (String, Option<String>) = {
     <n:r"[_a-z][a-zA-Z_0-9]*"> => (n.to_string(), None),
     <n:r"[_a-z][a-zA-Z_0-9]*"> ":" <t:r"[A-Z][a-zA-Z_0-9]*"> => (n.to_string(), Some(t.to_string())),
-}
+};
 
 
 FnDecl: Box<FnDecl> = {
@@ -33,13 +33,13 @@ FnDecl: Box<FnDecl> = {
     "func " <name:r"[_a-z][a-zA-Z_0-9]*"> "(" <args:Comma<FnParamDef>> ")" ":" => Box::new(FnDecl{name: name.to_string(), proc: false, args, output: None}),
     "proc " <name:r"[_a-z][a-zA-Z_0-9]*"> "(" <args:Comma<FnParamDef>> ")" "->" <output:r"[A-Z][a-zA-Z_0-9]*"> ":" => Box::new(FnDecl{name: name.to_string(), proc: true, args, output: Some(output.to_string())}),
     "proc " <name:r"[_a-z][a-zA-Z_0-9]*"> "(" <args:Comma<FnParamDef>> ")" ":" => Box::new(FnDecl{name: name.to_string(), proc: true, args, output: None}),
-}
+};
 
 
 VarDecl: Box<VarDecl> = {
     "let " <name:r"[_a-z][a-zA-Z_0-9]*"> "=" <expr:Expr> => Box::new(VarDecl{name: name.to_string(), mutable: false, expr}),
     "mut " <name:r"[_a-z][a-zA-Z_0-9]*"> "=" <expr:Expr> => Box::new(VarDecl{name: name.to_string(), mutable: true, expr}),
-}
+};
 
 
 LeftTier<Op, NextTier>: Box<Expr> = {
@@ -52,12 +52,17 @@ RightTier<Op, NextTier>: Box<Expr> = {
     NextTier
 };
 
-Expr = LeftTier<ExprOp, Factor>;
+Expr = LeftTier<ExprOp, Commutative>;
+Commutative = LeftTier<CommutativeOp, Factor>;
 Factor = LeftTier<FactorOp, Exponent>;
-Exponent = RightTier<ExponentOp, Term>;
-
+Exponent = RightTier<ExponentOp, InvTerm>;
 
 ExprOp: String = {
+    "==" => "`==`".to_string(),
+    "!=" => "`!=`".to_string(),
+};
+
+CommutativeOp: String = {
     "+" => "`+`".to_string(),
     "-" => "`-`".to_string(),
 };
@@ -72,13 +77,18 @@ ExponentOp: String = {
     "**" => "`**`".to_string(),
 };
 
+InvTerm: Box<Expr> = {
+    "!" <t:Term> => Box::new(Expr::FnCall(Box::new(FnCall{ name: "`!`".to_string(), args: vec![t] }))),
+    <t:Term> => t,
+};
+
 Term: Box<Expr> = {
     Bool => Box::new(Expr::Value(<>)),
     Float => Box::new(Expr::Value(<>)),
     Int => Box::new(Expr::Value(<>)),
     VarRef => Box::new(Expr::VarRef(<>)),
     FnCall => Box::new(Expr::FnCall(<>)),
-    MFnCall => Box::new(Expr::FnCall(<>)),
+    MutFnCall => Box::new(Expr::FnCall(<>)),
     "(" <Expr> ")",
     ! => { errors.push(<>); Box::new(Expr::Error) },
 };
@@ -90,21 +100,21 @@ Bool: Value = {
 
 Int: Value = {
     r"[+-]?[0-9]+" => Value::Int(i64::from_str(<>).unwrap()),
-}
+};
 
 Float: Value = {
     r"[+-]?([0-9]+\.([0-9]+)?|\.[0-9]+)([eE][+-]?[0-9]+)?" => Value::Float(f64::from_str(<>).unwrap()),
-}
+};
 
 VarRef: Box<VarRef> = {
     r"[_a-z][a-zA-Z_0-9]*" => Box::new(VarRef{name: <>.to_string()}),
-}
+};
 
 FnCall: Box<FnCall> = {
     <name:r"[_a-z][a-zA-Z_0-9]*"> "(" <args:Comma<Expr>> ")" => Box::new(FnCall { name: name.to_string(), args }),
     <name:r"`[\+\-\*/%[\*\*]]`"> "(" <args:Comma<Expr>> ")" => Box::new(FnCall { name: name.to_string(), args }),
-}
+};
 
-MFnCall: Box<FnCall> = {
+MutFnCall: Box<FnCall> = {
     <t:Term> "." <name:r"[_a-z][a-zA-Z_0-9]*"> "(" <args:Comma<Expr>> ")" => {let mut args = args; args.insert(0, t); Box::new(FnCall { name: name.to_string(), args})}
-}
+};

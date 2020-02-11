@@ -3,12 +3,16 @@ use std::collections::HashMap;
 use crate::ast;
 use crate::typesys::*;
 
+mod equality;
+mod inverse;
 mod math;
 
 pub fn create_stdlib_functions() -> HashMap<String, FunctionImpl> {
     let mut fns = HashMap::new();
 
-    math::create_math_functions(&mut fns);
+    equality::create_functions(&mut fns);
+    inverse::create_functions(&mut fns);
+    math::create_functions(&mut fns);
 
     fns
 }

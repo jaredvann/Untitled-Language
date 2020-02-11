@@ -96,7 +96,11 @@ impl Session {
 
         match self.functions.get(&fncall_hash_string) {
             Some(func) => Ok(&func.output),
-            None => Err(format!("Could not find matching type signature for function '{}'", &fncall.name)),
+            None => {
+                let expected_signature = format!("{}({})", &fncall.name, arg_types.join(", "));
+
+                Err(format!("Could not find matching type signature for function {}", &expected_signature))
+            },
         }
     }
 
@@ -181,10 +185,6 @@ impl Session {
 
 fn main() {
     let mut session = Session::new();
-
-    dbg!(session.execute("let a = 2.0").unwrap());
-    dbg!(session.execute("let b = 3.0").unwrap());
-    dbg!(session.execute("a + b").unwrap());
 }
 
 #[cfg(test)]
@@ -198,6 +198,33 @@ mod tests {
         session.execute("let a = 2.0").unwrap();
         session.execute("let b = 3.0").unwrap();
 
-        assert_eq!(session.execute("a + b").unwrap().as_float(), ast::Value::Float(5.0).as_float());
+        assert_eq!(session.execute("a + b").unwrap().as_float(), 5.0);
+    }
+
+    #[test]
+    fn test_inverse() {
+        let mut session = Session::new();
+
+        assert_eq!(session.execute("!True").unwrap().as_bool(), false);
+        assert_eq!(session.execute("!False").unwrap().as_bool(), true);
+    }
+
+    #[test]
+    fn test_equality() {
+        let mut session = Session::new();
+
+        assert_eq!(session.execute("True == True").unwrap().as_bool(), true);
+        assert_eq!(session.execute("False == False").unwrap().as_bool(), true);
+        assert_eq!(session.execute("True == False").unwrap().as_bool(), false);
+
+        assert_eq!(session.execute("True != True").unwrap().as_bool(), false);
+        assert_eq!(session.execute("False != False").unwrap().as_bool(), false);
+        assert_eq!(session.execute("True != False").unwrap().as_bool(), true);
+
+        assert_eq!(session.execute("4 == 4").unwrap().as_bool(), true);
+        assert_eq!(session.execute("4 == 3").unwrap().as_bool(), false);
+
+        assert_eq!(session.execute("4 != 4").unwrap().as_bool(), false);
+        assert_eq!(session.execute("4 != 3").unwrap().as_bool(), true);
     }
 }

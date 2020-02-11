@@ -96,7 +96,10 @@ impl Debug for Value {
     fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
         use self::Value::*;
         match *self {
-            Bool(x) => write!(fmt, "Bool({})", x),
+            Bool(x) => match x {
+                true => write!(fmt, "True"),
+                false => write!(fmt, "False"),
+            },
             Int(x) => write!(fmt, "Int({})", x),
             Float(x) => write!(fmt, "Float({})", x),
             None => write!(fmt, "None"),

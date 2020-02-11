@@ -4,7 +4,7 @@ use crate::ast;
 use crate::stdlib::functions::create_function;
 use crate::typesys::*;
 
-pub fn create_math_functions(mut fns: &mut HashMap<String, FunctionImpl>) {
+pub fn create_functions(mut fns: &mut HashMap<String, FunctionImpl>) {
     ////////////////////////////////////////////////////////////////////////////
     // BASIC MATH OPERATORS
     ////////////////////////////////////////////////////////////////////////////
