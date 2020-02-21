@@ -14,3 +14,6 @@ __pycache__
 
 *.interp
 *.tokens
+
+.DS_STORE
+.vscode

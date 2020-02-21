@@ -31,7 +31,7 @@ class Visitor(GrammarVisitor):
         types = set(self.visit(x) for x in ctx.expr())
 
         if len(types) == 1:
-            return Array(elem_type = self.visit(ctx.expr()[0]))
+            return Array(elem_type=self.visit(ctx.expr()[0]), size=len(ctx.expr()))
         
         types_string = ", ".join(str(t) for t in types)
         raise Exception(f"Not all elements in array have the same type (Found: {types_string})")
@@ -78,7 +78,7 @@ class Visitor(GrammarVisitor):
         if left == right:
             return Bool()
         else:
-            raise Exception(f"Both sides of equality do not have matching types ({left} and {right})")
+            raise Exception(f"Sides of equality do not have matching types ({left} and {right})")
 
 
 
@@ -93,6 +93,7 @@ class Visitor(GrammarVisitor):
         fn = findFn(self.funclib, name, args)
 
         if fn:
+            print(f"(Found fn with signature: {fn})")
             return fn.output
         else:
             fn = Function(name, args)
@@ -150,8 +151,8 @@ class Visitor(GrammarVisitor):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
 
-        if findFn(self.funclib, "pow", [left, right]) is None:
-            fn = Function("pow", [left, right])
+        if findFn(self.funclib, "cmp", [left, right]) is None:
+            fn = Function("cmp", [left, right])
             raise Exception(f"Function with type '{fn}' does not exist!")
 
         return Bool()
@@ -187,4 +188,3 @@ class Visitor(GrammarVisitor):
 
     def visitSemiTerm(self, ctx:GrammarParser.SemiTermContext) -> Type:
         return self.visit(ctx.term())
-

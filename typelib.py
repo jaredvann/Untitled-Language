@@ -14,13 +14,50 @@ class Numeric(Trait, metaclass=Singleton):
 
 class Type:
     def __init__(self):
-        self.traits = []
+        self.generics = []
 
     def name(self) -> str:
-        return self.__class__.__name__
+        return self.__repr__()
+
+    def isAbstract(self) -> bool:
+        return any(x.isAbstract() for x in self.generics)
 
     def __repr__(self) -> str:
-        return self.__class__.__name__
+        if len(self.generics) > 0:
+            return self.__class__.__name__ + "<" + ", ".join(str(g) for g in self.generics) + ">"
+        else:
+            return self.__class__.__name__
+
+    # def __eq__(self, other): 
+    #     return self.__class__ == other.__class__
+
+
+class AbstractType(Type):
+    def __init__(self):
+        super().__init__()
+
+    def isAbstract(self) -> bool:
+        return True
+
+
+class VirtualType(AbstractType):
+    def __init__(self, name: str):
+        super().__init__()
+
+        self.name = name
+
+    def __repr__(self) -> str:
+        return self.name
+
+    def __eq__(self, other): 
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+
+class ConcreteType(Type):
+    pass
 
 
 class Bool(Type, metaclass=Singleton):
@@ -46,22 +83,42 @@ class Any(Type):
 
 
 class Function(Type):
-    def __init__(self, name: str, inputs: tp.List[Type], output: Type = None, reqs: tp.List["Function"] = None):
+    def __init__(self, name: str, inputs: tp.List[Type], output: Type = None, reqs: tp.List["Function"] = []):
         self.name = name
         self.inputs = inputs
         self.output = output
         self.reqs = reqs
 
     def __repr__(self):
-        return self.name + "(" + ", ".join(x.name() for x in self.inputs) + ")" + (f" -> {self.output.name()}" if self.output else "")
+        return self.name + "(" + ", ".join(str(x) for x in self.inputs) + ")" + (f" -> {self.output}" if self.output else "")
+
+
+class ConcreteFunction(Function):
+    pass
+
+class AbstractFunction(Function):
+    pass
+
+class GeneratorFunction(Function):
+    pass
+
+class ConcreteGeneratorFunction(GeneratorFunction):
+    pass
+
+class AbstractGeneratorFunction(GeneratorFunction):
+    pass
 
 
 class Array(Type):
-    def __init__(self, elem_type: Type):
-        self.elem_type = elem_type
+    def __init__(self, elem_type: Type, size: int):
+        self.generics = [elem_type, size]
 
-    def __repr__(self) -> str:
-        return f"Array<{self.elem_type}>"
+    def __eq__(self, other): 
+        if not isinstance(other, Array):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return all(a == b for a, b in zip(self.generics, other.generics))
 
 
 class Variable:
