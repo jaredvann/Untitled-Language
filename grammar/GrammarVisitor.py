@@ -9,88 +9,173 @@ else:
 
 class GrammarVisitor(ParseTreeVisitor):
 
+    # Visit a parse tree produced by GrammarParser#suite.
+    def visitSuite(self, ctx:GrammarParser.SuiteContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#prog.
     def visitProg(self, ctx:GrammarParser.ProgContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#PrintExpr.
-    def visitPrintExpr(self, ctx:GrammarParser.PrintExprContext):
+    # Visit a parse tree produced by GrammarParser#singleInput.
+    def visitSingleInput(self, ctx:GrammarParser.SingleInputContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#DeclareVar.
-    def visitDeclareVar(self, ctx:GrammarParser.DeclareVarContext):
+    # Visit a parse tree produced by GrammarParser#fileInput.
+    def visitFileInput(self, ctx:GrammarParser.FileInputContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#AssignVar.
-    def visitAssignVar(self, ctx:GrammarParser.AssignVarContext):
+    # Visit a parse tree produced by GrammarParser#stmt.
+    def visitStmt(self, ctx:GrammarParser.StmtContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#Array.
+    # Visit a parse tree produced by GrammarParser#simpleStmt.
+    def visitSimpleStmt(self, ctx:GrammarParser.SimpleStmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#smallStmt.
+    def visitSmallStmt(self, ctx:GrammarParser.SmallStmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#compoundStmt.
+    def visitCompoundStmt(self, ctx:GrammarParser.CompoundStmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#funcDecl.
+    def visitFuncDecl(self, ctx:GrammarParser.FuncDeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#funcTypeDecl.
+    def visitFuncTypeDecl(self, ctx:GrammarParser.FuncTypeDeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#privateFuncTypeDecl.
+    def visitPrivateFuncTypeDecl(self, ctx:GrammarParser.PrivateFuncTypeDeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#funcDeclGenerics.
+    def visitFuncDeclGenerics(self, ctx:GrammarParser.FuncDeclGenericsContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#funcDeclArgs.
+    def visitFuncDeclArgs(self, ctx:GrammarParser.FuncDeclArgsContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#varDecl.
+    def visitVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#varAssign.
+    def visitVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#ifStmt.
+    def visitIfStmt(self, ctx:GrammarParser.IfStmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#TermExpr.
+    def visitTermExpr(self, ctx:GrammarParser.TermExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#PowerExpr.
+    def visitPowerExpr(self, ctx:GrammarParser.PowerExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#EqualityExpr.
+    def visitEqualityExpr(self, ctx:GrammarParser.EqualityExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#Arith1Expr.
+    def visitArith1Expr(self, ctx:GrammarParser.Arith1ExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#OrderingExpr.
+    def visitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#InlineIfExpr.
+    def visitInlineIfExpr(self, ctx:GrammarParser.InlineIfExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#Arith2Expr.
+    def visitArith2Expr(self, ctx:GrammarParser.Arith2ExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#termChain.
+    def visitTermChain(self, ctx:GrammarParser.TermChainContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#term.
+    def visitTerm(self, ctx:GrammarParser.TermContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#funcCall.
+    def visitFuncCall(self, ctx:GrammarParser.FuncCallContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#methodCall.
+    def visitMethodCall(self, ctx:GrammarParser.MethodCallContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#parens.
+    def visitParens(self, ctx:GrammarParser.ParensContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#atom.
+    def visitAtom(self, ctx:GrammarParser.AtomContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#arglist.
+    def visitArglist(self, ctx:GrammarParser.ArglistContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#array.
     def visitArray(self, ctx:GrammarParser.ArrayContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#MulDiv.
-    def visitMulDiv(self, ctx:GrammarParser.MulDivContext):
+    # Visit a parse tree produced by GrammarParser#subscript.
+    def visitSubscript(self, ctx:GrammarParser.SubscriptContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#AddSub.
-    def visitAddSub(self, ctx:GrammarParser.AddSubContext):
+    # Visit a parse tree produced by GrammarParser#atype.
+    def visitAtype(self, ctx:GrammarParser.AtypeContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#Ordering.
-    def visitOrdering(self, ctx:GrammarParser.OrderingContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Pow.
-    def visitPow(self, ctx:GrammarParser.PowContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Equality.
-    def visitEquality(self, ctx:GrammarParser.EqualityContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#SemiTerm.
-    def visitSemiTerm(self, ctx:GrammarParser.SemiTermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Boolean.
-    def visitBoolean(self, ctx:GrammarParser.BooleanContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#FnCall.
-    def visitFnCall(self, ctx:GrammarParser.FnCallContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Id.
-    def visitId(self, ctx:GrammarParser.IdContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Int.
-    def visitInt(self, ctx:GrammarParser.IntContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Float.
-    def visitFloat(self, ctx:GrammarParser.FloatContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#Parens.
-    def visitParens(self, ctx:GrammarParser.ParensContext):
+    # Visit a parse tree produced by GrammarParser#ctype.
+    def visitCtype(self, ctx:GrammarParser.CtypeContext):
         return self.visitChildren(ctx)
 
 

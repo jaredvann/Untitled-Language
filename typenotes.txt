@@ -1,0 +1,28 @@
+Array<T;N> == Array<B;S>
+Array<Array<T;M>;N> == Array<Array<X;Y>;S>
+Array<Array<T;N>;N> != Array<B;S>
+
+Array<Int;N> == Array<Int;S>
+Array<Int;N> == Array<B;S>
+
+
+Simple Type     : Int
+Complex Type    : Vec<Int>
+
+Concrete Type   : Array<Float;10>
+                : Vec<Vec<Int>>
+
+Abstract Type   : Dict<K,V>
+
+Unknown         : Vec<Vec<T>>     (Inner type is abstract so outer type is abstract?)
+                                  (Outer type has no generic placeholders so outer type is concrete?)
+
+
+A<B<C>, C> = X<Y<Z>, V>
+
+check A vs X
+check B vs Y
+check C vs Z
+
+Array<T,T;L>      --> Array<t0,t0;n0>
+Array<Int,Int,5>    --> Array

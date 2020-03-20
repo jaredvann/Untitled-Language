@@ -1,66 +1,96 @@
-from typelib import AbstractFunction, AbstractGeneratorFunction, VirtualType, \
-    Any, Array, Bool, Float, Function, Int, Null, Type, Variable
+# from basetypes import Array, Bool, Float, Int, Null
+# from typecore import AbstractType, ConcreteType
 
-types = [
-    Bool(),
-    Float(),
-    Int(),
-    Null(),
-]
+# ordering = Enum("Ordering", ["Less", "Equal", "Greater"])
 
-Vt = VirtualType
+# from basetypes import base_types
 
-functions = [
-    # Basic Operators
-    Function("add", [Float(), Float()], Float()),
-    Function("sub", [Float(), Float()], Float()),
-    Function("mul", [Float(), Float()], Float()),
-    Function("div", [Float(), Float()], Float()),
-    Function("pow", [Float(), Float()], Float()),
-    Function("mod", [Float(), Float()], Float()),
-    Function("cmp", [Float(), Float()], Bool()),
 
-    Function("add", [Int(), Int()], Int()),
-    Function("sub", [Int(), Int()], Int()),
-    Function("mul", [Int(), Int()], Int()),
-    Function("div", [Int(), Int()], Int()),
-    Function("pow", [Int(), Int()], Int()),
-    Function("mod", [Int(), Int()], Int()),
-    Function("cmp", [Int(), Int()], Bool()),
+function_strings = [
+    # Comparison Operators - TODO: implement return of ordering
+    "func cmp(Float, Float) -> Null",
+    "func cmp(Int, Int) -> Null",
 
-    # Basic Math
-    Function("sin", [Float()], Float()),
-    Function("cos", [Float()], Float()),
-    Function("tan", [Float()], Float()),
-    Function("radians", [Float()], Float()),
-    Function("degrees", [Float()], Float()),
-    Function("abs", [Float()], Float()),
+    # Math Operators
+    "func add(Float, Float) -> Float",
+    "func sub(Float, Float) -> Float",
+    "func mul(Float, Float) -> Float",
+    "func div(Float, Float) -> Float",
+    "func pow(Float, Float) -> Float",
+    "func mod(Float, Float) -> Float",
 
-    Function("default", [], Float()),
+    "func add(Int, Int) -> Int",
+    "func sub(Int, Int) -> Int",
+    "func mul(Int, Int) -> Int",
+    "func div(Int, Int) -> Int",
+    "func pow(Int, Int) -> Int",
+    "func mod(Int, Int) -> Int",
 
-    Function("sin", [Int()], Float()),
-    Function("cos", [Int()], Float()),
-    Function("tan", [Int()], Float()),
-    Function("radians", [Int()], Float()),
-    Function("degrees", [Int()], Float()),
-    Function("abs", [Int()], Int()),
+    # Math Functions
+    "func sin(Float) -> Float",
+    "func cos(Float) -> Float",
+    "func tan(Float) -> Float",
+    "func radians(Float) -> Float",
+    "func degrees(Float) -> Float",
+    "func abs(Float) -> Float",
 
-    Function("default", [], Int()),
+    "func abs(Int) -> Int",
+
+    # Default Functions
+    "func default() -> Float",
+    "func default() -> Int",
+
+    # Boolean Functions
+    "func bool(Bool) -> Bool",
+    "func bool(Float) -> Bool",
+    "func bool(Int) -> Bool",
 
     # General Functions
-    AbstractFunction("min", [Vt("T"), Vt("T")], Vt("T"), [AbstractFunction("cmp", [Vt("T"), Vt("T")])]),
-    AbstractFunction("max", [Vt("T"), Vt("T")], Vt("T"), [AbstractFunction("cmp", [Vt("T"), Vt("T")])]),
+    "func min(T,T) -> T",
+    "func max(T,T) -> T",
 
-    # Array Functions
-    AbstractGeneratorFunction("iterate", [Array(Vt("T"), Vt("s"))], Vt("T")),
-
-    AbstractFunction("add", [Array(Vt("T"), Vt("s")), Array(Vt("T"), Vt("s"))], Array(Vt("T"), Vt("s")), [AbstractFunction("add", [Vt("T"), Vt("T")])]),
-    AbstractFunction("sub", [Array(Vt("T"), Vt("s")), Array(Vt("T"), Vt("s"))], Array(Vt("T"), Vt("s")), [AbstractFunction("sub", [Vt("T"), Vt("T")])]),
+    # Indexing Functions
+    "func index(Array<T;L>, Int) -> T",
 
     # Iterator Functions
-    AbstractFunction("min", [Vt("T")], Vt("V"), [AbstractFunction("iterate", [Vt("T")], Vt("V")), AbstractFunction("cmp", [Vt("V"), Vt("V")])]),
-    Function("max", [Array(Vt("T"), Vt("s"))], Vt("T"), [AbstractFunction("cmp", [Vt("T"), Vt("T")])]),
-    Function("sum", [Array(Vt("T"), Vt("s"))], Vt("T"), [Function("add", [Vt("T"), Vt("T")], Vt("T"))]),
-    Function("product", [Array(Vt("T"), Vt("s"))], Vt("T"), [Function("mul", [Vt("T"), Vt("T")], Vt("T"))]),
-    Function("mean", [Array(Vt("T"), Vt("s"))], Vt("T"), [Function("add", [Vt("T"), Vt("T")], Vt("T")), Function("div", [Vt("T"), Vt("T")], Vt("T"))]),
+    "func iterate(Array<T;L>) -> Iterator<T>",
+    "func min(C) -> T",
+    "func max(C) -> T",
+    "func sum(C) -> T",
+    "func product(C) -> T",
+    "func mean(C) -> T",
+    # "func min(C) -> T : [iterate(C) -> Iterator<T>, cmp(T,T) -> Ordering]",
+    # "func max(C) -> T : [iterate(C) -> Iterator<T>, cmp(T,T) -> Ordering]",
+    # "func sum(C) -> T : [iterate(C) -> Iterator<T>, add(T,T) -> T]",
+    # "func product(C) -> T : [iterate(C) -> Iterator<T>, mul(T,T) -> T]",
+    # "func mean(C) -> T : [iterate(C) -> Iterator<T>, add(T,T) -> T, div(T,T) -> T]",
+
+    # Array Functions
+    "func add(Array<T;L>, Array<T;L>) -> Array<T;L>",
+    "func sub(Array<T;L>, Array<T;L>) -> Array<T;L>",
+    # "func add(Array<T;L>, Array<T;L>) -> Array<T;L> : [add(T,T) -> T]",
+    # "func sub(Array<T;L>, Array<T;L>) -> Array<T;L> : [add(T,T) -> T]",
+
+    # # Print Functions
+    "proc print(Bool)",
+    "proc print(Float)",
+    "proc print(Int)",
+
+    # # Misc. Functions
+    "proc exit()",
 ]
+
+# functions = [
+#     # # General Functions
+#     # AbstractFunction("min", [Vt("T"), Vt("T")], Vt("T"), [AbstractFunction("cmp", [Vt("T"), Vt("T")])]),
+#     # AbstractFunction("max", [Vt("T"), Vt("T")], Vt("T"), [AbstractFunction("cmp", [Vt("T"), Vt("T")])]),
+
+#     # # Array Functions
+#     # AbstractGeneratorFunction("iterate", [Array(Vt("T"), Vt("s"))], Vt("T")),
+
+#     # AbstractFunction("add", [Array(Vt("T"), Vt("s")), Array(Vt("T"), Vt("s"))], Array(Vt("T"), Vt("s")), [AbstractFunction("add", [Vt("T"), Vt("T")])]),
+#     # AbstractFunction("sub", [Array(Vt("T"), Vt("s")), Array(Vt("T"), Vt("s"))], Array(Vt("T"), Vt("s")), [AbstractFunction("sub", [Vt("T"), Vt("T")])]),
+
+#     # Indexing Functions
+#     AbstractFunction("index", [Array(Vt("T"), Vt("s")), Int()], Vt("T")),
+# ]
