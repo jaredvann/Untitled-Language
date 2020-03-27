@@ -113,7 +113,7 @@ fileInput       : (NEWLINE | stmt)* EOF;
 
 stmt            : simpleStmt | compoundStmt;
 // simpleStmt: smallStmt (';' smallStmt)* (';')? NEWLINE;
-simpleStmt      : expr | varAssign | varDecl | funcDecl | funcTypeDecl;
+simpleStmt      : expr | varAssign | varDecl | enumDecl | funcDecl | funcTypeDecl;
 smallStmt       : expr;
 
 compoundStmt    : ifStmt;
@@ -122,11 +122,11 @@ compoundStmt    : ifStmt;
 // stmt : enumDecl | funcDecl | varDecl | varAssign;
 // stmt : (ifStmt | expr | varDecl | varAssign);
 
-// enumDecl : 'enum' name=NAMEU ':' (NEWLINE INDENT items=enumItem DEDENT)+;
-// enumItem : name=NAMEU;
+enumDecl : 'enum' name=NAMEU ':' (NEWLINE INDENT items=enumItem)+;
+enumItem : name=NAMEU;
 
 funcDecl            : funcTypeDecl ':' (NEWLINE INDENT statements=stmt DEDENT)+;
-funcTypeDecl        : ('func' | 'proc') NAMEL ('<' funcDeclGenerics '>')? '(' funcDeclArgs ')' ('->' atype)?;
+funcTypeDecl        : 'fn' NAMEL ('<' funcDeclGenerics '>')? '(' funcDeclArgs ')' ('->' atype)?;
 privateFuncTypeDecl : fn=funcTypeDecl (':' '[' ( reqs=funcTypeDecl (',' reqs=funcTypeDecl)* ','? )? ']')?;
 
 

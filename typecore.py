@@ -1,5 +1,4 @@
 import typing as tp
-import unittest
 
 
 def validate_type_name(name: str):
@@ -56,6 +55,15 @@ class AbstractType(Type):
         self.type_generics = type_generics
         self.num_generics = num_generics
 
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, AbstractType)\
+            and self.name == other.name\
+            and self.type_generics == other.type_generics\
+            and self.num_generics == other.num_generics
+
+    def __hash__(self) -> str:
+        return self.__repr__().__hash__()
+
     def make_concrete(self, types: tp.List["ConcreteType"] = [], nums: tp.List[int] = []) -> "ConcreteType":
         if len(self.type_generics) != len(types):
             raise Exception(f"Number of type generics do not match ({len(self.type_generics)}, {len(types)}) !")
@@ -76,14 +84,25 @@ class AbstractType(Type):
 
         return ConcreteType(self.name, abstract_type=self, type_generics=new_types, num_generics=nums)
 
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, AbstractType)\
-            and self.name == other.name\
-            and self.type_generics == other.type_generics\
-            and self.num_generics == other.num_generics
 
-    def __hash__(self) -> str:
-        return self.__repr__().__hash__()
+    def make_concrete2(self, types: tp.Dict["GP", "ConcreteType"] = [], nums: tp.Dict["GP", int] = []) -> "ConcreteType":
+        new_types = []
+        new_nums = []
+        
+        for tg in self.type_generics:
+            if isinstance(tg, GP):
+                new_types.append(types[tg])
+            else:
+                new_types.append(tg.make_concrete2(types, nums))
+
+        for ng in self.num_generics:
+            if isinstance(ng, GP):
+                new_nums.append(types[ng])
+            else:
+                new_nums.append(ng)
+
+        return ConcreteType(self.name, abstract_type=self, type_generics=new_types, num_generics=new_nums)
+
 
 
 class ConcreteType(Type):
@@ -98,12 +117,6 @@ class ConcreteType(Type):
         self.type_generics = type_generics
         self.num_generics = num_generics
 
-    def has_generics(self) -> bool:
-        return len(self.type_generics) > 0 or len(self.num_generics) > 0
-
-    def create(self):
-        pass
-
     def __eq__(self, other: object) -> bool:
         return isinstance(other, ConcreteType)\
             and self.name == other.name\
@@ -114,6 +127,24 @@ class ConcreteType(Type):
     def __hash__(self) -> str:
         return self.__repr__().__hash__()
 
+    def has_generics(self) -> bool:
+        return len(self.type_generics) > 0 or len(self.num_generics) > 0
+
+    def make_instance(self, data: tp.Any) -> "TypeInstance":
+        return TypeInstance(self, data)
+
+
+class TypeInstance:
+    def __init__(self, type_: ConcreteType, data: tp.Any):
+        self.type = type_
+        self.data = data
+
+    def __repr__(self) -> str:
+        return f"{self.type}{{{self.data}}}"
+        # return str(self.data)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, TypeInstance) and self.type == other.type and self.data == other.data
 
 
 class GenericPlaceholder:
@@ -155,37 +186,47 @@ class AbstractFunction(Type, Function):
 
 
 class ConcreteFunction(Type, Function):
-    def __init__(self, name: str, inputs: tp.List[Type], output: Type = None, abstract_function: AbstractFunction = None):
+    def __init__(self, name: str, inputs: tp.List[Type], output: Type = None, abstract_function: AbstractFunction = None, decl: tp.Callable = None):
         self.name = name
-        self.abstract_function = abstract_function
         self.inputs = inputs
         self.output = output
+        self.abstract_function = abstract_function
+        self.decl = decl
 
     def __repr__(self) -> str:
         return self.name + "(" + ", ".join(str(x) for x in self.inputs) + ")" + (f" -> {self.output}" if self.output else "")
 
+    def add_decl(self, decl: tp.Callable) -> "ConcreteFunction":
+        self.decl = decl
+        return self
+
 
 class Variable:
-    def __init__(self, type: ConcreteType, mutable = False):
-        self.type = type
+    def __init__(self, type_: ConcreteType = None, instance: TypeInstance = None, mutable = False):
+        self.type = type_ if instance is None else instance.type
+        self.instance = instance
         self.mutable = mutable
 
 
 
-if __name__ == '__main__':
-    from basetypes import Int
+class Enum(Type):
+    def __init__(self, name: str, vals: tp.List[str]):
+        self.name = name
+        self.vals = vals
 
-    class TestTypeCore(unittest.TestCase):
-        def test_make_concrete_1(self):
-            a = AbstractType("Array", [GP("T")], [GP("L")])
-            b = a.make_concrete([Int], [5])
+    def __repr__(self) -> str:
+        return self.name
 
-            self.assertEqual(str(b), "Array<Int;5>")
+    def is_complex(self) -> bool:
+        return False
 
-        def test_make_concrete_2(self):
-            a = AbstractType("Array", [AbstractType("Array", [GP("T")], [GP("L")])], [GP("L")])
+    def is_simple(self) -> bool:
+        return True
 
-            with self.assertRaises(Exception):
-                a.make_concrete([Int], [5])
+    def make_instance(self, val: str) -> TypeInstance:
+        if val not in self.vals:
+            raise Exception()
 
-    unittest.main()
+        return TypeInstance(self, val)
+
+

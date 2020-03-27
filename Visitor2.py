@@ -2,19 +2,26 @@ import copy
 import typing as tp
 import sys
 
+import antlr4
+
 from func_compat_checker import find_compatible_function
 from type_compat_checker import check_type_compatibility
 from grammar.GrammarParser import GrammarParser
 from grammar.GrammarVisitor import GrammarVisitor
+from grammar.GrammarLexer import GrammarLexer
+from grammar.GrammarParser import GrammarParser
+from ErrorListener import ErrorListener
 
-from basetypes import AbstractArray, Bool, Float, Int, Null
-# from stdlib import functions
-from typecore import AbstractType, ConcreteType, Type, GP
+from basetypes import base_types, AbstractArray, Bool, Ordering, Float, Int, Null
+import stdlib
+from typecore import AbstractType, ConcreteType, Type, GP, TypeInstance
 from typecore import AbstractFunction, ConcreteFunction, Function
 from typecore import Enum, Variable
 
+# TODO: handle Null Type/TypeInstance problem
 
-class Visitor(GrammarVisitor):
+
+class Visitor2(GrammarVisitor):
     def __init__(self, base_types: tp.List[Type], funclib: tp.List[Function], debug=False, immutable=False):
         self.base_types = base_types
         self.funclib = funclib
@@ -26,7 +33,34 @@ class Visitor(GrammarVisitor):
         self.immutable = immutable
 
 
-    def visitAtom(self, ctx:GrammarParser.AtomContext) -> ConcreteType:
+    def findFunction(self, name, inputs, output=None) -> ConcreteFunction:
+        inputs = [x.type if isinstance(x, TypeInstance) else x for x in inputs]
+
+        goal_fn = ConcreteFunction(name, inputs, output)
+        result_fn = find_compatible_function(self.funclib, goal_fn)
+
+        if result_fn is not None:
+            return result_fn
+        else:
+            raise Exception(f"Function with type '{goal_fn}' does not exist!")
+
+
+    def callFunction(self, function: Function, inputs: tp.List[TypeInstance]) -> TypeInstance:  
+        if function.decl is None:
+            raise NotImplementedError(f"Function {function} not implemented!")
+        
+        r = function.decl(*(x.data for x in inputs))
+
+        if function.output is Null:
+            return Null
+        else:
+            if not isinstance(r, TypeInstance):
+                r = function.output.make_instance(r)
+            
+            return r
+
+
+    def visitAtom(self, ctx:GrammarParser.AtomContext) -> TypeInstance:
         if ctx.NAMEL():
             # TODO: check if NAMEL is a var of func
             #     name = ctx.NAMEL().getText()
@@ -37,19 +71,22 @@ class Visitor(GrammarVisitor):
             return Null
 
         elif ctx.INT():
-            return Int
+            return Int.make_instance(int(ctx.INT().getText()))
 
         elif ctx.FLOAT():
-            return Float
+            return Float.make_instance(float(ctx.FLOAT().getText()))
 
-        elif ctx.TRUE() or ctx.FALSE():
-            return Bool
+        elif ctx.TRUE():
+            return Bool.make_instance(True)
+
+        elif ctx.FALSE():
+            return Bool.make_instance(False)
         
         else:
             raise Exception
 
 
-    def visitArith1Expr(self, ctx: GrammarParser.Arith1ExprContext) -> Type:
+    def visitArith1Expr(self, ctx: GrammarParser.Arith1ExprContext) -> TypeInstance:
         if ctx.op.type == GrammarParser.MUL:
             name = "mul"
         elif ctx.op.type == GrammarParser.DIV:
@@ -60,82 +97,67 @@ class Visitor(GrammarVisitor):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
 
-        goal_fn = ConcreteFunction(name, [left, right])
-        result_fn = find_compatible_function(self.funclib, goal_fn)
-
-        if result_fn and result_fn.output:
-            return result_fn.output
-        else:
-            raise Exception(f"Function with type '{goal_fn}' does not exist!")
+        fn = self.findFunction(name, [left, right])
+        return self.callFunction(fn, [left, right])
 
 
-    def visitArith2Expr(self, ctx:GrammarParser.Arith2ExprContext) -> Type:
+    def visitArith2Expr(self, ctx:GrammarParser.Arith2ExprContext) -> TypeInstance:
         name = "add" if ctx.op.type == GrammarParser.ADD else "sub"
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
 
-        goal_fn = ConcreteFunction(name, [left, right])
-        result_fn = find_compatible_function(self.funclib, goal_fn)
-
-        if result_fn and result_fn.output:
-            return result_fn.output
-        else:
-            raise Exception(f"Function with type '{goal_fn}' does not exist!")
+        fn = self.findFunction(name, [left, right])
+        return self.callFunction(fn, [left, right])
 
 
-    def visitArray(self, ctx:GrammarParser.ArrayContext) -> ConcreteType:
+    def visitArray(self, ctx:GrammarParser.ArrayContext) -> TypeInstance:
         if len(ctx.expr()) == 0:
             # NOTE: in future will need to use type inference to gather type if possible
-            return AbstractArray.make_concrete(types=[Null], nums=[0])
+            return AbstractArray.make_concrete(types=[Null], nums=[0]).make_instance(None)
 
-        types = set(self.visit(x) for x in ctx.expr())
+        vals = [self.visit(x) for x in ctx.expr()]
+        types = set(val.type for val in vals)
 
         if len(types) == 1:
-            return AbstractArray.make_concrete(types=[types.pop()], nums=[len(ctx.expr())])
+            type_ = AbstractArray.make_concrete(types=[types.pop()], nums=[len(ctx.expr())])
+            return type_.make_instance(vals)
         
         types_string = ", ".join(str(t) for t in types)
         raise Exception(f"Not all elements in array have the same type (Found: {types_string})")
 
 
-    def visitEnumDecl(self, ctx:GrammarParser.EnumDeclContext) -> Type:
+    def visitEnumDecl(self, ctx:GrammarParser.EnumDeclContext):
+        if ctx.items == None:
+            raise Exception(f"Enum '{ctx.name}' has no items")
+
         self.user_types.append(Enum(ctx.name, [self.visit(item) for item in ctx.enumItem()]))
         return Null
 
 
-    def visitEnumItem(self, ctx:GrammarParser.EnumItemContext) -> str:
+    def visitEnumItem(self, ctx:GrammarParser.EnumItemContext):
         return ctx.name
 
 
-    def visitEqualityExpr(self, ctx: GrammarParser.EqualityExprContext) -> Type:
-        # TODO: implement spaceship funcs
-
+    def visitEqualityExpr(self, ctx: GrammarParser.EqualityExprContext) -> TypeInstance:
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
 
-        if left == right:
-            return Bool
-        else:
-            raise Exception(f"Sides of equality do not have matching types ({left} and {right})")
+        fn = self.findFunction("eq", [left, right])
+        r = self.callFunction(fn, [left, right]).data
+
+        return Bool.make_instance((ctx.EQUALS() is not None) == r)
 
 
-    def visitFuncCall(self, ctx:GrammarParser.FuncCallContext) -> Type:
+    def visitFuncCall(self, ctx:GrammarParser.FuncCallContext) -> TypeInstance:
         name = ctx.NAMEL().getText()
         args = [self.visit(x) for x in ctx.expr()]
 
-        goal_fn = ConcreteFunction(name, args)
-        result_fn = find_compatible_function(self.funclib, goal_fn)
-
-        if result_fn:
-            if self.debug:
-                print(f"(Found fn with signature: {result_fn})")
-            
-            return result_fn.output
-        else:
-            raise Exception(f"Function with type '{goal_fn}' does not exist!")
-
+        fn = self.findFunction(name, args)
+        return self.callFunction(fn, args)
 
 
     def visitFuncDecl(self, ctx:GrammarParser.FuncDeclContext):
+        raise NotImplementedError
         raise Exception("TODO")
         return self.visitChildren(ctx)
 
@@ -151,13 +173,14 @@ class Visitor(GrammarVisitor):
     def visitPrivateFuncTypeDecl(self, ctx:GrammarParser.PrivateFuncTypeDeclContext):
         fn = self.visit(ctx.fn)
 
-        if ctx.reqs is not None:
-            fn.reqs = [self.visit(req) for req in ctx.reqs]
+        # if ctx.reqs is not None:
+        #     fn.reqs = [self.visit(req) for req in ctx.reqs]
 
         return fn
 
 
     def visitFuncDeclGenerics(self, ctx:GrammarParser.FuncDeclGenericsContext):
+        raise NotImplementedError
         raise Exception("TODO")
         return self.visitChildren(ctx)
 
@@ -167,6 +190,7 @@ class Visitor(GrammarVisitor):
 
 
     def visitInlineIfExpr(self, ctx:GrammarParser.InlineIfExprContext) -> Type:
+        raise NotImplementedError
         success, test, fail = ctx.expr(0), ctx.expr(1), ctx.expr(2)
 
         test_type = self.visit(test)
@@ -184,51 +208,45 @@ class Visitor(GrammarVisitor):
         return success_type
 
 
-    def visitMethodCall(self, ctx:GrammarParser.MethodCallContext) -> Type:
+    def visitMethodCall(self, ctx:GrammarParser.MethodCallContext) -> TypeInstance:
         name = ctx.NAMEL().getText()
-
         args = [self.visit(ctx.term())] + [self.visit(x) for x in ctx.expr()]
 
-        goal_fn = ConcreteFunction(name, args)
-        result_fn = find_compatible_function(self.funclib, goal_fn)
-
-        if result_fn and result_fn.output:
-            if self.debug:
-                print(f"(Found fn with signature: {result_fn})")
-            return result_fn.output
-        else:
-            raise Exception(f"Function with type '{goal_fn}' does not exist!")
+        fn = self.findFunction(name, args)
+        return self.callFunction(fn, args)
 
 
-    def visitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext) -> Type:
+    def visitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext) -> TypeInstance:
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
 
-        fn = ConcreteFunction("cmp", [left, right])
-        if find_compatible_function(self.funclib, fn) is None:
-            raise Exception(f"Function with type '{fn}' does not exist!")
+        fn = self.findFunction("cmp", [left, right])
+        result = self.callFunction(fn, [left, right]) 
+        
+        if ctx.LT():
+            return Bool.make_instance(result == Ordering.make_instance("Less"))
+        elif ctx.GT():
+            return Bool.make_instance(result == Ordering.make_instance("Greater"))
+        elif ctx.LT_EQ():
+            return Bool.make_instance(result != Ordering.make_instance("Greater"))
+        elif ctx.GT_EQ():
+            return Bool.make_instance(result != Ordering.make_instance("Less"))
 
-        return Bool
 
-
-    def visitParens(self, ctx: GrammarParser.ParensContext) -> Type:
+    def visitParens(self, ctx: GrammarParser.ParensContext) -> TypeInstance:
         return self.visit(ctx.expr()) if ctx.expr() else Null
 
 
-    def visitPowerExpr(self, ctx: GrammarParser.PowerExprContext) -> Type:
+    def visitPowerExpr(self, ctx: GrammarParser.PowerExprContext) -> TypeInstance:
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
 
-        goal_fn = ConcreteFunction("pow", [left, right])
-        result_fn = find_compatible_function(self.funclib, goal_fn)
-
-        if result_fn and result_fn.output:
-            return result_fn.output
-        else:
-            raise Exception(f"Function with type '{goal_fn}' does not exist!")
+        fn = self.findFunction("pow", [left, right])
+        return self.callFunction(fn, [left, right])
 
 
     def visitSubscript(self, ctx:GrammarParser.SubscriptContext) -> Type:
+        raise NotImplementedError
         term_type = self.visit(ctx.term())
 
         goal_fn = ConcreteFunction("index", [term_type, Int])
@@ -244,9 +262,8 @@ class Visitor(GrammarVisitor):
         return self.visitChildren(ctx)
 
 
-    
-
     def check_abstract_type_compatibility(a: AbstractType, b: AbstractType) -> bool:
+        raise NotImplementedError
         if a.name != b.name\
                 or not (isinstance(a, AbstractType) and isinstance(b, AbstractType))\
                 or len(a.type_generics) != len(b.type_generics)\
@@ -290,10 +307,14 @@ class Visitor(GrammarVisitor):
 
         # Type is simple
         if len(ctx.ctype()) == 0 and len(ctx.INT()) == 0:
-            t = ConcreteType(name)
+            for t in self.base_types + self.user_types:
+                if t.name == name and t.__class__ in [ConcreteType, Enum]:
+                    return t
 
-            if t in self.base_types + self.user_types:
-                return t
+            # t = ConcreteType(name)
+
+            # if t in self.base_types + self.user_types:
+            #     return t
 
         # Type is complex
         else:
@@ -310,72 +331,71 @@ class Visitor(GrammarVisitor):
         raise Exception(f"Type matching '{ctx.getText()}' not found!")
 
 
-    def visitVarAssign(self, ctx: GrammarParser.VarAssignContext) -> Type:
+    def visitVarAssign(self, ctx: GrammarParser.VarAssignContext) -> TypeInstance:
         name = ctx.NAMEL().getText()
 
         if name not in self.user_vars.keys():
             raise Exception(f"Variable '{name}' has not been declared")
         
-        t = self.visit(ctx.expr())
-        v = self.user_vars[name]
+        val = self.visit(ctx.expr())
+        var = self.user_vars[name]
 
-        if t != v.type:
-            raise Exception(f"Variable '{name}' has already been declared with type '{v.type}'")
+        if val.type != var.instance.type:
+            raise Exception(f"Variable '{name}' has already been declared with type '{var.instance.type}'")
 
-        if not v.mutable:
+        if not var.mutable:
             raise Exception(f"Variable '{name}' is not mutable and cannot be re-assigned")
 
         return Null
 
 
-    def visitVarDecl(self, ctx: GrammarParser.VarDeclContext) -> Type:
+    def visitVarDecl(self, ctx: GrammarParser.VarDeclContext) -> TypeInstance:
         name = ctx.NAMEL().getText()
-        
-        t = self.visit(ctx.expr())
+        val = self.visit(ctx.expr())
 
         if ctx.ctype():
             explicit_type = self.visit(ctx.ctype())
 
             # explicit_type_name = ctx.ttype().getText()
-
             # explicit_type = findType(self.typelib + self.user_types, explicit_type_name)
 
             if explicit_type is None:
                 raise Exception(f"Explicit type '{explicit_type}' given does not exist!")
 
-            if t != explicit_type:
-                raise Exception(f"Explicit type '{explicit_type}' given does not match actual type '{t}'!")
-
-        t = self.visit(ctx.expr())
+            if val.type != explicit_type:
+                raise Exception(f"Explicit type '{explicit_type}' given does not match actual type '{val.type}'!")
 
         mut = ctx.prefix.type == GrammarParser.MUT
 
         if not self.immutable:
-            self.user_vars[name] = Variable(t, mutable=mut)
             if self.debug:
-                print(f"(Declared{' mutable' if mut else ''} var '{name}' with type '{t}')")
+                verb = "Redeclared" if name in self.user_vars else "Declared"
+
+                print(f"({verb}{' mutable' if mut else ''} var '{name}' with type '{val.type}')")
+            
+            self.user_vars[name] = Variable(instance=val, mutable=mut)
 
         return Null
 
 
 
+class Interpreter():
+    def __init__(self, types: tp.List[Type] = base_types, functions: tp.List[Function] = None):
+        self.visitor = Visitor2(types, functions)
+
+        if functions == None:
+            self.visitor.funclib = [self.parse(fs, "privateFuncTypeDecl").add_decl(fn) for fs, fn in stdlib.function_decls]
+        
+
+    def parse(self, s: str, grammar: str = "prog"):
+        lexer = GrammarLexer(antlr4.InputStream(s))
+        stream = antlr4.CommonTokenStream(lexer)
+        parser = GrammarParser(stream)
+        parser._listeners = [ErrorListener()]
+        tree = getattr(parser, grammar)()
+
+        return self.visitor.visit(tree)
 
 
-
- 
-    # # def visitIfExpr(self, ctx:GrammarParser.IfExprContext) -> Type:
-    # #     return self.visitChildren(ctx)
-
-
-    # def visitIfStmt(self, ctx:GrammarParser.IfStmtContext) -> Type:
-    #     return Null()
-
-
-    # def visitId(self, ctx: GrammarParser.IdContext) -> Type:
-    #     name = ctx.NAMEL().getText()
-
-    #     if name in self.user_vars:
-    #         return self.user_vars[name].type
-    #     else:
-    #         raise Exception(f"Variable '{name}' does not exist!")
-
+if __name__ == "__main__":
+    print(Interpreter().parse(sys.argv[1]))

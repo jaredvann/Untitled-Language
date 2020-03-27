@@ -20,34 +20,34 @@ def parse(token: str, s: str) -> GrammarParser:
 
 class TestGrammar(unittest.TestCase):
     def test_func_decls(self):
-        parse("funcTypeDecl", "func test()")
-        parse("funcTypeDecl", "func test(Int)")
-        parse("funcTypeDecl", "func test(Int, Int)")
-        parse("funcTypeDecl", "func test(Int, Int) -> Int")
+        parse("funcTypeDecl", "fn test()")
+        parse("funcTypeDecl", "fn test(Int)")
+        parse("funcTypeDecl", "fn test(Int, Int)")
+        parse("funcTypeDecl", "fn test(Int, Int) -> Int")
 
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func")
+            parse("funcTypeDecl", "fn")
 
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func ()")
+            parse("funcTypeDecl", "fn ()")
 
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func () ->")
+            parse("funcTypeDecl", "fn () ->")
 
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func a")
+            parse("funcTypeDecl", "fn a")
 
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func A")
+            parse("funcTypeDecl", "fn A")
 
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func fn(1)")
+            parse("funcTypeDecl", "fn fn(1)")
         
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func fn(a)")
+            parse("funcTypeDecl", "fn fn(a)")
         
         with self.assertRaises(SyntaxError):
-            parse("funcTypeDecl", "func fn() -> a")
+            parse("funcTypeDecl", "fn fn() -> a")
 
 
     def test_parens(self):
@@ -97,6 +97,23 @@ class TestGrammar(unittest.TestCase):
         
         with self.assertRaises(SyntaxError):
             parse("subscript", "a[1,]")
+
+
+    def test_enum(self):
+        parse("enumDecl", "enum Singleton:\n\tOne")
+        parse("enumDecl", "enum Temperature:\n\tHot\n\tCold")
+
+        with self.assertRaises(SyntaxError):
+            parse("enumDecl", "enum")
+
+        with self.assertRaises(SyntaxError):
+            parse("enumDecl", "enum V")
+
+        with self.assertRaises(SyntaxError):
+            parse("enumDecl", "enum Void")
+
+        with self.assertRaises(SyntaxError):
+            parse("enumDecl", "enum Void:")
 
 
 if __name__ == '__main__':

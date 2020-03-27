@@ -16,7 +16,7 @@ class TestTypeSystemParser(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.visitor = Visitor(base_types, [], debug=True)
-        cls.visitor.funclib = [cls.parse(fs, "privateFuncTypeDecl") for fs in stdlib.function_strings]
+        cls.visitor.funclib = [cls.parse(fs, "privateFuncTypeDecl").add_decl(fn) for fs, fn in stdlib.function_decls]
 
 
     def setUp(self):
@@ -125,11 +125,11 @@ class TestTypeSystemParser(unittest.TestCase):
         self.parse_string("func test()", Function)
 
 
-    # def test_enum(self):
-    #     self.parse_equal("enum Direction:\n\tNorth\n\tWest\n\tSouth\n\tEast", Null)
+    def test_enum(self):
+        self.parse_equal("enum Direction:\n\tNorth\n\tWest\n\tSouth\n\tEast", Null)
 
-    #     with self.assertRaises(Exception):
-    #         parse_string("enum Blank:")
+        with self.assertRaises(Exception):
+            parse_string("enum Blank:")
 
     
     def test_array(self):

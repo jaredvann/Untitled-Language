@@ -17,29 +17,48 @@ def find_compatible_function(functions: tp.List[Function], fn_1: Function) -> tp
             continue
 
         # Fast path for exactly matching & non-generic input types
-        # if all(a == b for a, b in zip(fn_1.inputs, fn_2.inputs)):
         if fn_1.inputs == fn_2.inputs:
             return fn_2
 
         if all(check_type_compatibility(a, b) for a, b in zip(fn_1.inputs, fn_2.inputs)):
             tpairs, npairs = {}, {}
 
-            print("\n")
-
             for a, b in zip(fn_1.inputs, fn_2.inputs):
                 if isinstance(a, AbstractType):
                     if not pair_abstract_concrete_types(a, b, tpairs, npairs):
-                        return False
+                        return None
                 elif isinstance(b, AbstractType):
                     if not pair_abstract_concrete_types(b, a, tpairs, npairs):
-                        return False
+                        return None
+
+            # def extract_generic_placeholders(type_: AbstractType) -> tp.Tuple[tp.List[GP], tp.List[GP]]:
+            #     tgens = []
+            #     ngens = type_.num_generics
+
+            #     for tg in type_.type_generics:
+            #         if isinstance(tg, GP):
+            #             tgens.append(tg)
+            #         else:
+            #             tgens2, ngens2 = extract_generic_placeholders(tg)
+            #             tgens.append(tgens2)
+            #             ngens.append(ngens2)
+
+            #     return (tgens, ngens)
+
+            # output_tgens, output_ngens = extract_generic_placeholders()    
 
 
             new_output = Null
 
-            if type(fn_2.output) in [AbstractType, GP]:
+            if isinstance(fn_2.output, GP):
                 if fn_2.output in tpairs:
                     new_output = tpairs[fn_2.output]
+                else:
+                    raise NotImplementedError
+
+            elif isinstance(fn_2.output, AbstractType):
+                new_output = fn_2.output.make_concrete2(tpairs, npairs)
+
             elif Type in fn_2.output.__class__.__bases__:
                 raise Exception("Needs fixing!")
                 if fn_2.output.isAbstract():
@@ -49,8 +68,10 @@ def find_compatible_function(functions: tp.List[Function], fn_1: Function) -> tp
                 #     new_output.generics = [(xmap[g] if type(g) == str else g) for g in new_output.generics]
                 else:
                     new_output = fn_2.output
+            else:
+                raise Exception("TODO")
 
-            return ConcreteFunction(fn_1.name, fn_1.inputs, new_output)
+            return ConcreteFunction(fn_1.name, fn_1.inputs, new_output, decl=fn_2.decl)
 
 
 

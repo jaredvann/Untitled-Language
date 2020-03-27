@@ -80,6 +80,24 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#enumDecl.
+    def enterEnumDecl(self, ctx:GrammarParser.EnumDeclContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#enumDecl.
+    def exitEnumDecl(self, ctx:GrammarParser.EnumDeclContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#enumItem.
+    def enterEnumItem(self, ctx:GrammarParser.EnumItemContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#enumItem.
+    def exitEnumItem(self, ctx:GrammarParser.EnumItemContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#funcDecl.
     def enterFuncDecl(self, ctx:GrammarParser.FuncDeclContext):
         pass

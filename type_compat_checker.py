@@ -1,6 +1,7 @@
 import typing as tp
 import unittest
 
+from basetypes import Int
 from typecore import *
 
 
@@ -179,6 +180,4 @@ class TestTypeCompatibilityChecker(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    from basetypes import Int
-
     unittest.main()
