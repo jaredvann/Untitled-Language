@@ -1,0 +1,54 @@
+
+
+
+fn add2(a) => add(a, 2)               Take untyped function that depends on another function
+
+        ⬇
+
+fn add2(a: #1) => add(#1, Int)        Add 'Blank' types to untyped parent function params and pass down to child function
+
+        ⬇
+
+fn add2(a: #1): [add(#1, Int)]      
+
+
+
+
+Function compilation step:
+--------------------------
+
+0a. Define abstract function:
+    fn head(a) => index(a, 0)
+
+0b. Create variables for each params and fill in function body:
+    fn head(#1) => index(#1, Int)
+
+0c. Parse and extract required functions:
+    fn head(#1): [index(#1, Int)]
+
+
+Function call compilation step:
+-------------------------------
+
+1. Try to call with int array:
+    head([1,2,3])
+
+2. Look for function with signature 'head(Array<Int>)' -- no concrete function found.
+
+3. Look for function with name 'head' and 1 param:
+    head(#1): [index(#1, Int)]
+
+4. Create mapping of types:
+    #1 <=> Array<Int>
+
+5. Check function requirements are met:
+    index(Array<Int>, Int)
+
+6. Not found, look for generic versions of params:
+    index(Array<X>, Int)
+
+7. Found, extract return type:
+    index(Array<Int>, Int) -> Int
+
+8. Go up to parent:
+    head([1,2,3]) -> Int
