@@ -82,7 +82,7 @@ class Visitor(GrammarVisitor):
     # Visit a parse tree produced by GrammarParser#funcDecl.
     def visitFuncDecl(self, ctx: GrammarParser.FuncDeclContext):
         name = ctx.NAME().getText()
-        args = self.visit(ctx.funcDeclParams())
+        args = self.visit(ctx.funcDeclArgs())
         body = self.visit(ctx.stmt())
 
         return FunctionAST(name, args, body)

@@ -22,15 +22,14 @@ class MultiAST(ASTNode):
 
 
 class ArrayAST(ASTNode):
-    def __init__(self, vals):
+    def __init__(self, vals) -> None:
         self.vals = vals
         self.len = len(vals)
 
-    def dump(self, indent=0):
+    def dump(self, indent=0) -> str:
         s = " "*indent + f"ArrayAST({self.len})\n"
-        for val in self.vals:
-            s += val.dump(indent + 2) + "\n"
-        return s[:-1]  # snip out trailing '\n'
+        s += "\n".join(val.dump(indent + 2) for val in self.vals)
+        return s
 
 
 class IntAST(ASTNode):

@@ -142,6 +142,16 @@ class TypeChecker:
         return [self._typecheck(stmt) for stmt in node.stmts]
 
 
+    def _typecheck_ArrayAST(self, node: ArrayAST) -> ArrayTST:
+        typed_vals = [self._typecheck(val) for val in node.vals]
+        types = list(set(val.type for val in typed_vals))
+
+        if len(types) > 1:
+            raise TypeCheckerException(f"Found multiple types in array: {types}")
+
+        return ArrayTST(Type("Array", [types[0]], [len(typed_vals)]), typed_vals)
+
+
     def _typecheck_VariableAST(self, node: VariableAST) -> VariableTST:
         name = node.name
 

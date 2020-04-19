@@ -4,15 +4,23 @@ alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 
 class Type:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, type_generics: tp.List["Type"] = None, num_generics: tp.List[int] = None) -> None:
         self.name = name
+        self.type_generics = type_generics
+        self.num_generics = num_generics
 
     def __repr__(self) -> str:
-        return self.name
+        if self.type_generics or self.num_generics:
+            return f"{self.name}<{','.join(str(x) for x in self.type_generics)};{','.join(str(x) for x in self.num_generics)}>"
+        else:
+            return self.name
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "Type") -> bool:
         return isinstance(other, self.__class__)\
             and self.name == other.name\
+
+    def __hash__(self) -> str:
+        return self.__repr__().__hash__()
 
 
 class TypeVar(Type):

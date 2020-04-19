@@ -10,9 +10,11 @@ float_types = [ir.HalfType, ir.FloatType, ir.DoubleType]
 
 def ir_type_conv(t: Type) -> ir.Type:
     if t == Type("Int"):
-        return ir.IntType(32)
+        return ir.IntType(64)
     elif t == Type("Float"):
         return ir.DoubleType()
+    elif t == Type("Array"):
+        return ir.ArrayType(ir_type_conv(t.type_generics[0]), t.num_generics[0])
 
     else:
         raise Exception(f"Conversion to IR for type '{t.name}' not found!")
@@ -29,16 +31,6 @@ def ir_type_conv(t: Type) -> ir.Type:
 
 class LLVMCodeGenerator(object):
     def __init__(self):
-        """Initialize the code generator.
-
-        This creates a new LLVM module into which code is generated. The
-        generate_code() method can be called multiple times. It adds the code
-        generated for this node into the module, and returns the IR value for
-        the node.
-
-        At any time, the current LLVM module being constructed can be obtained
-        from the module attribute.
-        """
         self.module = ir.Module()
 
         # Current IR builder.
@@ -60,12 +52,11 @@ class LLVMCodeGenerator(object):
         For TST node of class Foo, calls self._codegen_Foo. Each visitor is
         expected to return a llvmlite.ir.Value.
         """
-        method = '_codegen_' + node.__class__.__name__
+        method = "_codegen_" + node.__class__.__name__
         return getattr(self, method)(node)
 
 
     def _codegen_ArrayTST(self, node):
-        raise NotImplementedError
         return ir.Constant.literal_array([self._codegen(v) for v in node.vals])
 
 
@@ -73,8 +64,7 @@ class LLVMCodeGenerator(object):
         return ir.Constant(ir_type_conv(node.type), node.val)
 
 
-    def _codegen_VariableExprTST(self, node: VariableTST):
-        raise NotImplementedError
+    def _codegen_VariableTST(self, node: VariableTST):
         return self.func_symbol_table[node.name]
 
 
@@ -149,21 +139,45 @@ class LLVMCodeGenerator(object):
             func = self.module.globals[name]
         else:
             # Otherwise create a new function
-            functype = ir.FunctionType(ir_type_conv(node.type), [ir_type_conv(arg.type) for arg in node.args])
-                        
+            ret_type = ir_type_conv(node.type)
+
+            # If an object needs to be returned by pointer:
+            #  - Create a global variable with same type
+            #  - Initialise memory
+            #  - Get pointer to global
+            #
+            # Notes: probably a better way to do this, may only need restricting 
+            # to python interfacing functions
+            if node.type == Type("Array"):
+                elem_type = ir_type_conv(node.type.type_generics[0])
+                arr_len = node.type.num_generics[0]
+
+                ret_ptr = ir.GlobalVariable(self.module, ir.ArrayType(elem_type, arr_len), "retval")
+                ret_ptr.initializer = ir.Constant.literal_array([ir.Constant(elem_type, 0)] * arr_len)
+                ret_type = ret_type.as_pointer()
+
+            functype = ir.FunctionType(ret_type, [ir_type_conv(arg.type) for arg in node.args])
+            
             func = ir.Function(self.module, functype, name)
         
         # Set function argument names from TST
         for i, arg in enumerate(func.args):
-            arg.name = node.argnames[i]
+            arg.name = node.args[i].name
             self.func_symbol_table[arg.name] = arg
         
-
         # Create the entry BB in the function and set the builder to it.
-        bb_entry = func.append_basic_block('entry')
+        bb_entry = func.append_basic_block("entry")
         self.builder = ir.IRBuilder(bb_entry)
         
-        retval = self._codegen(node.body)
-        self.builder.ret(retval)
-        
+        ret_val = self._codegen(node.body)
+
+        # If an object needs to be returned by pointer:
+        #  - Store function return values in global
+        #  - Return pointer to global
+        if node.type == Type("Array"):
+            self.builder.store(ret_val, ret_ptr)
+            self.builder.ret(ret_ptr)
+        else:
+            self.builder.ret(ret_val)
+
         return func

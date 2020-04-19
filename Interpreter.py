@@ -1,10 +1,13 @@
+import copy
 import ctypes
 import sys
 import typing as tp
+import unittest
 
 import antlr4
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
+import numpy as np
 from termcolor import cprint
 
 from grammar.GrammarLexer import GrammarLexer
@@ -33,10 +36,11 @@ Compilation stages:
 
 def ctype_type_conv(t: Type) -> ir.Type:
     if t == Type("Int"):
-        return ctypes.c_int32
-
-    if t == Type("Float"):
+        return ctypes.c_int64
+    elif t == Type("Float"):
         return ctypes.c_double
+    elif t == Type("Array"):
+        return np.ctypeslib.ndpointer(dtype=ctype_type_conv(t.type_generics[0]), shape=(t.num_generics[0],))
 
     else:
         raise Exception(f"Conversion to ctype for type '{t.name}' not found!")
@@ -67,14 +71,12 @@ class Interpreter():
         self.target = llvm.Target.from_default_triple()
 
 
-    def evaluate(self, codestr, debug=True, optimize=False):
-        """Evaluate code in codestr.
+    def evaluate(self, codestr, debug=False, optimize=False, silent=False):
+        if silent:
+            debug = False
 
-        Returns None for definitions and externs, and the evaluated expression
-        value for toplevel expressions.
-        """
-
-        cprint("\n" + "="*60 + f"\n=> {codestr}", "yellow")
+        if not silent:
+            cprint("\n" + "="*60 + f"\n=> {codestr}", "yellow")
     
         
         ########################################################################
@@ -141,19 +143,19 @@ class Interpreter():
             cprint("\nUnoptimised LLVM IR:", "magenta", attrs=["bold"])
             print(str(self.codegen.module))
 
-
-        ########################################################################
-        # Stage 5 - JIT Compilation
-
-        if debug:
-            cprint("\n### Stage 5/5: JIT Compilation ###", "blue", attrs=["bold"])
-
         # If we're evaluating a definition or extern declaration, don't do
         # anything else. If we're evaluating an anonymous wrapper for a toplevel
         # expression, JIT-compile the module and run the function to get its
         # result.
         if not (isinstance(tst, FunctionTST) and tst.is_anonymous()):
             return None
+
+
+        ########################################################################
+        # Stage 5 - JIT Compilation
+
+        if debug:
+            cprint("\n### Stage 5/5: JIT Compilation ###", "blue", attrs=["bold"])
 
         # Convert LLVM IR into in-memory representation
         llvmmod = llvm.parse_assembly(str(self.codegen.module))
@@ -184,7 +186,46 @@ class Interpreter():
 
             ret = ctypes.CFUNCTYPE(ctype_type_conv(tst.type))(ee.get_function_address(ast.name))()
 
-            cprint(f": {ret}", "green", attrs=["bold"])
+            if not silent:
+                cprint(f": {ret}", "green", attrs=["bold"])
+
+            # Make copy because otherwise JIT memory is freed and causes Seg Faults
+            return copy.copy(ret)
+
+
+class Tests(unittest.TestCase):
+    def test_return_types(self):
+        # Int
+        self.assertEqual(Interpreter().evaluate("1", optimize=1, silent=1), 1)
+        # Float
+        self.assertEqual(Interpreter().evaluate("1.0", optimize=1, silent=1), 1.0)
+        # Array
+        self.assertTrue((Interpreter().evaluate("[1,2,3]", optimize=1, silent=1) == np.array([1,2,3])).all())
+
+    def test_int_math(self):
+        self.assertEqual(Interpreter().evaluate("3 + 2", optimize=1, silent=1), 5)
+        self.assertEqual(Interpreter().evaluate("3 - 2", optimize=1, silent=1), 1)
+        self.assertEqual(Interpreter().evaluate("3 * 2", optimize=1, silent=1), 6)
+        self.assertEqual(Interpreter().evaluate("3 / 2", optimize=1, silent=1), 1)
+        self.assertEqual(Interpreter().evaluate("3 % 2", optimize=1, silent=1), 1)
+
+    def test_float_math(self):
+        self.assertEqual(Interpreter().evaluate("3.0 + 2.0", optimize=1, silent=1), 5.0)
+        self.assertEqual(Interpreter().evaluate("3.0 - 2.0", optimize=1, silent=1), 1.0)
+        self.assertEqual(Interpreter().evaluate("3.0 * 2.0", optimize=1, silent=1), 6.0)
+        self.assertEqual(Interpreter().evaluate("3.0 / 2.0", optimize=1, silent=1), 1.5)
+        self.assertEqual(Interpreter().evaluate("3.0 % 2.0", optimize=1, silent=1), 1.0)
+
+    def test_math_methods(self):
+        self.assertEqual(Interpreter().evaluate("sqrt(9.0)", optimize=1, silent=1), 3.0)
+
+    def test_func_definition(self):
+        i = Interpreter()
+        i.evaluate("fn double(x: Int): x * 2", optimize=1, silent=1)
+
+        self.assertEqual(i.evaluate("double(3)", optimize=1, silent=1), 6)
+        self.assertEqual(i.evaluate("double(double(3))", optimize=1, silent=1), 12)
+
 
 
 if __name__ == "__main__":

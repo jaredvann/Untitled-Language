@@ -8,6 +8,18 @@ class TSTNode:
         raise NotImplementedError
 
 
+class ArrayTST(TSTNode):
+    def __init__(self, type: Type, vals) -> None:
+        self.type = type
+        self.vals = vals
+        self.len = len(vals)
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"ArrayTST({self.type}; {self.len})\n"
+        s += "\n".join(val.dump(indent + 2) for val in self.vals)
+        return s
+
+
 class ValueTST(TSTNode):
     def __init__(self, type: Type, val) -> None:
         self.type = type

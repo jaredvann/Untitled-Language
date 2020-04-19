@@ -27,7 +27,8 @@ parens      : '(' expr? ')';
 atom        : NAME | INT | FLOAT;
 
 // arglist     : '(' ( expr (',' expr)* ','? )? ')';
-array       : '[' ( expr (',' expr)* ','? )? ']';
+array       : '[' expr (',' expr)* ','? ']';
+// array       : '[' ( expr (',' expr)* ','? )? ']';
 // subscript   : term '[' INT ']';
 
 
