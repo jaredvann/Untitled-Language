@@ -1,7 +1,8 @@
 import typing as tp
 
 
-from AST import * 
+from AST import *
+import corelib
 from TST import * 
 from Scope import Scope
 from typelib import *
@@ -11,45 +12,7 @@ from typelib import *
 Int = Type("Int")
 Float = Type("Float")
 Bool = Type("Bool")
-
-
-def build_std_lib() -> Scope:
-    scope = Scope()
-
-    scope.add_type(Int)
-    scope.add_type(Float)
-    scope.add_type(Bool)
-
-    scope.add_function(FunctionType("+", [Int, Int], Int))
-    scope.add_function(FunctionType("-", [Int, Int], Int))
-    scope.add_function(FunctionType("*", [Int, Int], Int))
-    scope.add_function(FunctionType("/", [Int, Int], Int))
-    scope.add_function(FunctionType("%", [Int, Int], Int))
-
-    scope.add_function(FunctionType("+", [Float, Float], Float))
-    scope.add_function(FunctionType("-", [Float, Float], Float))
-    scope.add_function(FunctionType("*", [Float, Float], Float))
-    scope.add_function(FunctionType("/", [Float, Float], Float))
-    scope.add_function(FunctionType("%", [Float, Float], Float))
-    scope.add_function(FunctionType("^", [Float, Float], Float))
-
-    scope.add_function(FunctionType("abs", [Float], Float))
-    scope.add_function(FunctionType("floor", [Float], Float))
-    scope.add_function(FunctionType("ceil", [Float], Float))
-    scope.add_function(FunctionType("round", [Float], Float))
-
-    scope.add_function(FunctionType("sqrt", [Float], Float))
-    scope.add_function(FunctionType("exp", [Float], Float))
-    scope.add_function(FunctionType("log", [Float], Float))
-    scope.add_function(FunctionType("log10", [Float], Float))
-    scope.add_function(FunctionType("log2", [Float], Float))
-
-    scope.add_function(FunctionType("sin", [Float], Float))
-    scope.add_function(FunctionType("cos", [Float], Float))
-    scope.add_function(FunctionType("tan", [Float], Float))
-
-    return scope
-
+Int_Array = Type("Array", [Int])
 
 
 class TypeCheckerException(Exception): pass
@@ -58,7 +21,7 @@ class TypeCheckerException(Exception): pass
 class TypeChecker:
     def __init__(self, scope: Scope = None) -> None:
         if scope is None:
-            scope = build_std_lib()
+            scope = corelib.scope
 
         self.scope = scope
 
@@ -116,7 +79,7 @@ class TypeChecker:
 
         for fn in functions:
             if arg_types == fn.arg_types:
-                return FunctionCallTST(fn.ret_type, name, args)
+                return FunctionCallTST(fn.ret_type, fn, args)
 
         error_text = f"Found function(s) with name '{name}' but incompatible inputs:\n"
 

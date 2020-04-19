@@ -11,7 +11,7 @@ expr:   expr '^'<assoc=right> expr              # PowerExpr
     ;
 
 
-termChain   : term;
+termChain   : term | subscript;
 
 term        : funcCall | array | atom | parens;
 
@@ -29,7 +29,7 @@ atom        : NAME | INT | FLOAT;
 // arglist     : '(' ( expr (',' expr)* ','? )? ')';
 array       : '[' expr (',' expr)* ','? ']';
 // array       : '[' ( expr (',' expr)* ','? )? ']';
-// subscript   : term '[' INT ']';
+subscript   : term '[' INT ']';
 
 
 ASSIGN      : '=';

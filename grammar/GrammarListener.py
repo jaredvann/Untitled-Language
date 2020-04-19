@@ -143,5 +143,14 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#subscript.
+    def enterSubscript(self, ctx:GrammarParser.SubscriptContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#subscript.
+    def exitSubscript(self, ctx:GrammarParser.SubscriptContext):
+        pass
+
+
 
 del GrammarParser

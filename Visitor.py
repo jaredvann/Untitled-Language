@@ -116,7 +116,12 @@ class Visitor(GrammarVisitor):
 
 
     # Visit a parse tree produced by GrammarParser#array.
-    def visitArray(self, ctx:GrammarParser.ArrayContext):
+    def visitArray(self, ctx: GrammarParser.ArrayContext):
         vals = [self.visit(x) for x in ctx.expr()]
 
         return ArrayAST(vals)
+
+
+    # Visit a parse tree produced by GrammarParser#subscript.
+    def visitSubscript(self, ctx: GrammarParser.SubscriptContext):
+        return FunctionCallAST(f"index", [self.visit(ctx.term()), IntAST(int(ctx.INT().getText()))])

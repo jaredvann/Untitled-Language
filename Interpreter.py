@@ -39,11 +39,11 @@ def ctype_type_conv(t: Type) -> ir.Type:
         return ctypes.c_int64
     elif t == Type("Float"):
         return ctypes.c_double
-    elif t == Type("Array"):
+    elif t.name == "Array":
         return np.ctypeslib.ndpointer(dtype=ctype_type_conv(t.type_generics[0]), shape=(t.num_generics[0],))
 
     else:
-        raise Exception(f"Conversion to ctype for type '{t.name}' not found!")
+        raise Exception(f"Conversion to ctype for type '{t}' not found!")
 
 
 class Interpreter():
@@ -225,6 +225,15 @@ class Tests(unittest.TestCase):
 
         self.assertEqual(i.evaluate("double(3)", optimize=1, silent=1), 6)
         self.assertEqual(i.evaluate("double(double(3))", optimize=1, silent=1), 12)
+
+    def test_array_access(self):
+        self.assertEqual(Interpreter().evaluate("[1,2,3][0]", optimize=1, silent=1), 1)
+        self.assertEqual(Interpreter().evaluate("[1,2,3][1]", optimize=1, silent=1), 2)
+        self.assertEqual(Interpreter().evaluate("[1,2,3][2]", optimize=1, silent=1), 3)
+
+        self.assertEqual(Interpreter().evaluate("[1.0,2.0,3.0][0]", optimize=1, silent=1), 1.0)
+        self.assertEqual(Interpreter().evaluate("[1.0,2.0,3.0][1]", optimize=1, silent=1), 2.0)
+        self.assertEqual(Interpreter().evaluate("[1.0,2.0,3.0][2]", optimize=1, silent=1), 3.0)
 
 
 

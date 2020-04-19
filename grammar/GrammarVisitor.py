@@ -84,5 +84,10 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#subscript.
+    def visitSubscript(self, ctx:GrammarParser.SubscriptContext):
+        return self.visitChildren(ctx)
+
+
 
 del GrammarParser

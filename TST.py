@@ -1,6 +1,6 @@
 import typing as tp
 
-from typelib import Type
+from typelib import FunctionType, Type
 
 
 class TSTNode:
@@ -45,13 +45,13 @@ class VariableTST(TSTNode):
 
 
 class FunctionCallTST(TSTNode):
-    def __init__(self, type: Type, name, args: tp.List[TSTNode]) -> None:
+    def __init__(self, type: Type, func: FunctionType, args: tp.List[TSTNode]) -> None:
         self.type = type
-        self.name = name
+        self.func = func
         self.args = args
 
     def dump(self, indent=0) -> str:
-        s = " "*indent + f"FunctionCallTST({self.type}; {self.name})\n"
+        s = " "*indent + f"FunctionCallTST({self.type}; {self.func.name})\n"
         s += "\n".join(arg.dump(indent + 2) for arg in self.args)
         return s
 

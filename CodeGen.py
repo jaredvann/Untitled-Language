@@ -4,8 +4,6 @@ from TST import *
 from typelib import *
 
 
-alphabet = "abcdefghijklmnopqrstuvwxyz"
-
 float_types = [ir.HalfType, ir.FloatType, ir.DoubleType]
 
 def ir_type_conv(t: Type) -> ir.Type:
@@ -13,20 +11,11 @@ def ir_type_conv(t: Type) -> ir.Type:
         return ir.IntType(64)
     elif t == Type("Float"):
         return ir.DoubleType()
-    elif t == Type("Array"):
+    elif t.name == "Array":
         return ir.ArrayType(ir_type_conv(t.type_generics[0]), t.num_generics[0])
 
     else:
-        raise Exception(f"Conversion to IR for type '{t.name}' not found!")
-
-
-# def build_core_functions(module: ir.Module):
-#     # +(Int, Int) -> Int
-#     functype = ir.FunctionType(ir.IntType(32), [ir.IntType(32), ir.IntType(32)])
-#     func = ir.Function(module, functype, "+")
-    
-#     builder = ir.IRBuilder(func.append_basic_block("entry"))
-#     builder.ret(builder.add(func.args[0], func.args[1]))
+        raise Exception(f"Conversion to IR for type '{t}' not found!")
 
 
 class LLVMCodeGenerator(object):
@@ -47,11 +36,6 @@ class LLVMCodeGenerator(object):
 
 
     def _codegen(self, node: TSTNode):
-        """Node visitor. Dispatches upon node type.
-
-        For TST node of class Foo, calls self._codegen_Foo. Each visitor is
-        expected to return a llvmlite.ir.Value.
-        """
         method = "_codegen_" + node.__class__.__name__
         return getattr(self, method)(node)
 
@@ -69,60 +53,18 @@ class LLVMCodeGenerator(object):
 
 
     def _codegen_FunctionCallTST(self, node: FunctionCallTST):
-        name = node.name
+        name = node.func.name
+        args = [self._codegen(arg) for arg in node.args]
+        arg_types = [ir_type_conv(arg.type) for arg in node.args]
 
-        if name == "abs" and len(node.args) == 1:
-            t1 = ir_type_conv(node.args[0].type)
-            
-            if t1.__class__ in float_types:
-                func = ir.Function(self.module, ir.FunctionType(t1, [t1]), "fabs")
-                return self.builder.call(func, [self._codegen(node.args[0])])
-
-        if name in ["+", "-", "*", "/", "%", "^"] and len(node.args) == 2:
-            t1 = ir_type_conv(node.args[0].type)
-            t2 = ir_type_conv(node.args[1].type)
-
-            if t1 == t2:
-                if t1.__class__ == ir.IntType:
-                    c1 = self._codegen(node.args[0])
-                    c2 = self._codegen(node.args[1])
-
-                    if name == "+":
-                        return self.builder.add(c1, c2)
-                    elif name == "-":
-                        return self.builder.sub(c1, c2)
-                    elif name == "*":
-                        return self.builder.mul(c1, c2)
-                    elif name == "/":
-                        return self.builder.sdiv(c1, c2)
-                    elif name == "%":
-                        return self.builder.srem(c1, c2)
-
-                elif t1.__class__ in float_types:
-                    c1 = self._codegen(node.args[0])
-                    c2 = self._codegen(node.args[1])
-
-                    if name == "+":
-                        return self.builder.fadd(c1, c2)
-                    elif name == "-":
-                        return self.builder.fsub(c1, c2)
-                    elif name == "*":
-                        return self.builder.fmul(c1, c2)
-                    elif name == "/":
-                        return self.builder.fdiv(c1, c2)
-                    elif name == "%":
-                        return self.builder.frem(c1, c2)
-                    elif name == "^":
-                        func = ir.Function(self.module, ir.FunctionType(t1, [t1, t2]), "pow")
-                        return self.builder.call(func, [c1, c2])
-                    
+        if node.func.ir_body is not None:
+            return node.func.ir_body(self, args, arg_types)
 
         func = self.module.globals.get(name, None)
 
         if func is None:
-            functype = ir.FunctionType(ir_type_conv(node.type), [ir_type_conv(arg.type) for arg in node.args])
+            functype = ir.FunctionType(ir_type_conv(node.type), arg_types)
             func = ir.Function(self.module, functype, name)
-
 
         call_args = [self._codegen(arg) for arg in node.args]
         return self.builder.call(func, call_args, "calltmp")
@@ -148,7 +90,7 @@ class LLVMCodeGenerator(object):
             #
             # Notes: probably a better way to do this, may only need restricting 
             # to python interfacing functions
-            if node.type == Type("Array"):
+            if node.type.name == "Array":
                 elem_type = ir_type_conv(node.type.type_generics[0])
                 arr_len = node.type.num_generics[0]
 
@@ -174,7 +116,7 @@ class LLVMCodeGenerator(object):
         # If an object needs to be returned by pointer:
         #  - Store function return values in global
         #  - Return pointer to global
-        if node.type == Type("Array"):
+        if node.type.name == "Array":
             self.builder.store(ret_val, ret_ptr)
             self.builder.ret(ret_ptr)
         else:
