@@ -45,8 +45,24 @@ class Visitor(GrammarVisitor):
         return FunctionCallAST("^", [lhs, rhs])
 
 
+    # Visit a parse tree produced by GrammarParser#EqualityExpr.
+    def visitEqualityExpr(self, ctx:GrammarParser.EqualityExprContext):
+        lhs = self.visit(ctx.expr(0))
+        rhs = self.visit(ctx.expr(1))
+
+        return FunctionCallAST(f"{ctx.op.text}", [lhs, rhs])
+
+
     # Visit a parse tree produced by GrammarParser#Arith1Expr.
     def visitArith1Expr(self, ctx: GrammarParser.Arith1ExprContext):
+        lhs = self.visit(ctx.expr(0))
+        rhs = self.visit(ctx.expr(1))
+
+        return FunctionCallAST(f"{ctx.op.text}", [lhs, rhs])
+
+
+    # Visit a parse tree produced by GrammarParser#OrderingExpr.
+    def visitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext):
         lhs = self.visit(ctx.expr(0))
         rhs = self.visit(ctx.expr(1))
 
@@ -105,12 +121,16 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#atom.
     def visitAtom(self, ctx: GrammarParser.AtomContext):
-        if ctx.INT():
+        if ctx.getText() == "True":
+            return BoolAST(True)
+        if ctx.getText() == "False":
+            return BoolAST(False)
+        elif ctx.NAME():
+            return VariableAST(ctx.NAME().getText())
+        elif ctx.INT():
             return IntAST(int(ctx.INT().getText()))
         elif ctx.FLOAT():
             return FloatAST(float(ctx.FLOAT().getText()))
-        elif ctx.NAME():
-            return VariableAST(ctx.NAME().getText())
         else:
             raise Exception
 

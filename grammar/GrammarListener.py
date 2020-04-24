@@ -44,12 +44,30 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#EqualityExpr.
+    def enterEqualityExpr(self, ctx:GrammarParser.EqualityExprContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#EqualityExpr.
+    def exitEqualityExpr(self, ctx:GrammarParser.EqualityExprContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#Arith1Expr.
     def enterArith1Expr(self, ctx:GrammarParser.Arith1ExprContext):
         pass
 
     # Exit a parse tree produced by GrammarParser#Arith1Expr.
     def exitArith1Expr(self, ctx:GrammarParser.Arith1ExprContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#OrderingExpr.
+    def enterOrderingExpr(self, ctx:GrammarParser.OrderingExprContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#OrderingExpr.
+    def exitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext):
         pass
 
 

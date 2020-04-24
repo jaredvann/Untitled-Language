@@ -4,7 +4,9 @@ prog            : stmt | funcDecl;
 // suite           : stmt (';' stmt)*;
 stmt            : expr;
 
-expr:   expr '^'<assoc=right> expr              # PowerExpr
+expr:   expr op=('<'|'>'|'<='|'>=') expr        # OrderingExpr
+    |   expr op=('=='|'!=') expr                # EqualityExpr
+    |   expr '^'<assoc=right> expr              # PowerExpr
     |   expr op=('*'|'/'|'%') expr              # Arith1Expr     // TODO: integer division
     |   expr op=('+'|'-') expr                  # Arith2Expr
     |   termChain                               # TermExpr
@@ -24,7 +26,7 @@ funcDeclArg         : NAME ':' NAMEU;
 
 parens      : '(' expr? ')';
 
-atom        : NAME | INT | FLOAT;
+atom        : 'True' | 'False' | NAME | INT | FLOAT;
 
 // arglist     : '(' ( expr (',' expr)* ','? )? ')';
 array       : '[' expr (',' expr)* ','? ']';

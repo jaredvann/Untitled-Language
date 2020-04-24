@@ -13,14 +13,17 @@ def map_types(a: Type, b: Type, symbols: dict = None, level=0) -> tp.Union[dict,
 
     symbols = {} if symbols is None else symbols
 
+    if a == b:
+        return True
+
     if a.is_abstract():
         return False
 
     if a.name != b.name:
         return False
 
-    if a.name == b.name and b.is_concrete():
-        return True
+    # if a.name == b.name and b.is_concrete():
+    #     return True
 
     if len(a.type_generics) != len(b.type_generics):
         return False
@@ -40,7 +43,7 @@ def map_types(a: Type, b: Type, symbols: dict = None, level=0) -> tp.Union[dict,
         else:
             ret = map_types(a.type_generics[i], b.type_generics[i], level+1)
 
-            if ret is None:
+            if ret is False:
                 return False
             else:
                 b.type_generics[i] = ret
@@ -68,6 +71,11 @@ class Tests(unittest.TestCase):
         self.assertEqual(map_types(Int, Int), True)
 
         self.assertEqual(map_types(Int, Float), False)
+
+
+        A = Type("Array", [Int], [1])
+        B = Type("Array", [Float], [1])
+        self.assertEqual(map_types(A, B), False)
 
 
         A = Type("Array", [Int], [1])

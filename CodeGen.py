@@ -88,13 +88,13 @@ class LLVMCodeGenerator(object):
                 ret_ptr.initializer = ir.Constant.literal_array([ir.Constant(elem_type, 0)] * arr_len)
                 ret_type = ret_type.as_pointer()
 
-            functype = ir.FunctionType(ret_type, [ir_type_conv(arg[1]) for arg in node.args])
+            functype = ir.FunctionType(ret_type, [ir_type_conv(arg.type) for arg in node.args])
             
             func = ir.Function(self.module, functype, name)
         
         # Set function argument names from TST
         for i, arg in enumerate(func.args):
-            arg.name = node.args[i][0]
+            arg.name = node.args[i].name
             self.func_symbol_table[arg.name] = arg
         
         # Create the entry BB in the function and set the builder to it.

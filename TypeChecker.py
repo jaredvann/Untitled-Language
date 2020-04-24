@@ -30,6 +30,10 @@ class TypeChecker:
         return getattr(self, method)(node)
 
 
+    def _typecheck_BoolAST(self, node: BoolAST) -> ValueTST:
+        return ValueTST(Bool, node.val)
+
+
     def _typecheck_FunctionAST(self, node: FunctionAST) -> FunctionTST:
         self.scope = Scope(self.scope)
 
@@ -61,13 +65,13 @@ class TypeChecker:
 
 
     def resolve_functions(self, fn1: FunctionType, fn2: FunctionType) -> bool:
-        resolve_counter = 0
-        resolve_table = {}
+        # resolve_counter = 0
+        # resolve_table = {}
 
         # Iterate over all pairs of arguments in the two functions - no varargs
         # so checking ordered pairs is sufficient
         for a, b in zip(fn1.arg_types, fn2.arg_types):
-            print(a, b)
+            # print(a, b)
 
             # map_types should cover all equality checking
             res = map_types(a, b)
@@ -78,7 +82,6 @@ class TypeChecker:
             # TODO: cross comparison between all input parameters (and output?) - maybe wrap type in tuple
 
         return True
-
 
 
     def _typecheck_FunctionCallAST(self, node: FunctionAST) -> Type:

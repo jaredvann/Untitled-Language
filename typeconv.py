@@ -7,7 +7,9 @@ from typelib import ConcreteType
 
 
 def ir_type_conv(t: ConcreteType) -> ir.Type:
-    if t == ConcreteType("Int"):
+    if t == ConcreteType("Bool"):
+        return ir.IntType(1)
+    elif t == ConcreteType("Int"):
         return ir.IntType(64)
     elif t == ConcreteType("Float"):
         return ir.DoubleType()
@@ -19,7 +21,9 @@ def ir_type_conv(t: ConcreteType) -> ir.Type:
 
 
 def ctype_type_conv(t: ConcreteType) -> ir.Type:
-    if t == ConcreteType("Int"):
+    if t == ConcreteType("Bool"):
+        return ctypes.c_bool
+    elif t == ConcreteType("Int"):
         return ctypes.c_int64
     elif t == ConcreteType("Float"):
         return ctypes.c_double

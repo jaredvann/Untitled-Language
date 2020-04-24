@@ -6,6 +6,14 @@ class ASTNode:
         raise NotImplementedError
 
 
+class BoolAST(ASTNode):
+    def __init__(self, val) -> None:
+        self.val = val
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"BoolAST({self.val})"
+
+
 class VariableAST(ASTNode):
     def __init__(self, name) -> None:
         self.name = name

@@ -29,8 +29,18 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#EqualityExpr.
+    def visitEqualityExpr(self, ctx:GrammarParser.EqualityExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#Arith1Expr.
     def visitArith1Expr(self, ctx:GrammarParser.Arith1ExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#OrderingExpr.
+    def visitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext):
         return self.visitChildren(ctx)
 
 
