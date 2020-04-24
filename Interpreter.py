@@ -230,6 +230,13 @@ class Tests(unittest.TestCase):
         self.assertEqual(Interpreter().evaluate("1 <= 1", optimize=1, silent=1), True)
         self.assertEqual(Interpreter().evaluate("1 >= 1", optimize=1, silent=1), True)
 
+    def test_if_else_expr(self):
+        self.assertEqual(Interpreter().evaluate("1 if True else 0", optimize=1, silent=1), 1)
+        self.assertEqual(Interpreter().evaluate("1 if False else 0", optimize=1, silent=1), 0)
+
+        self.assertEqual(Interpreter().evaluate("5 if 1 > 2 else 2", optimize=1, silent=1), 2)
+        self.assertEqual(Interpreter().evaluate("[0] if True else [1]", optimize=1, silent=1), [0])
+
     def test_int_math(self):
         self.assertEqual(Interpreter().evaluate("3 + 2", optimize=1, silent=1), 5)
         self.assertEqual(Interpreter().evaluate("3 - 2", optimize=1, silent=1), 1)

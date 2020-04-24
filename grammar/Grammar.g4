@@ -4,7 +4,8 @@ prog            : stmt | funcDecl;
 // suite           : stmt (';' stmt)*;
 stmt            : expr;
 
-expr:   expr op=('<'|'>'|'<='|'>=') expr        # OrderingExpr
+expr:   expr 'if' expr 'else' expr              # InlineIfElseExpr
+    |   expr op=('<'|'>'|'<='|'>=') expr        # OrderingExpr
     |   expr op=('=='|'!=') expr                # EqualityExpr
     |   expr '^'<assoc=right> expr              # PowerExpr
     |   expr op=('*'|'/'|'%') expr              # Arith1Expr     // TODO: integer division

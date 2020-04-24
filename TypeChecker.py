@@ -63,6 +63,20 @@ class TypeChecker:
 
         return FunctionTST(ret_type, name, args, body_tst)
 
+    
+    def _typecheck_IfElseAST(self, node: IfElseAST) -> IfElseTST:
+        test_expr_tst = self._typecheck(node.test_expr)
+        then_expr_tst = self._typecheck(node.then_expr)
+        else_expr_tst = self._typecheck(node.else_expr)
+
+        if test_expr_tst.type != Bool:
+            raise TypeCheckerException(f"Test expression does not evaluate to Bool (got '{test_expr_tst.type}')")
+
+        if then_expr_tst.type != else_expr_tst.type:
+            raise TypeCheckerException(f"Types of both branches on if else must be equal (got '{then_expr_tst.type}' and '{else_expr_tst.type}')")
+
+        return IfElseTST(then_expr_tst.type, test_expr_tst, then_expr_tst, else_expr_tst)
+
 
     def resolve_functions(self, fn1: FunctionType, fn2: FunctionType) -> bool:
         # resolve_counter = 0

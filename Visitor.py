@@ -69,6 +69,15 @@ class Visitor(GrammarVisitor):
         return FunctionCallAST(f"{ctx.op.text}", [lhs, rhs])
 
 
+    # Visit a parse tree produced by GrammarParser#InlineIfElseExpr.
+    def visitInlineIfElseExpr(self, ctx:GrammarParser.InlineIfElseExprContext):
+        then_expr = self.visit(ctx.expr(0))
+        test_expr = self.visit(ctx.expr(1))
+        else_expr = self.visit(ctx.expr(2))
+
+        return IfElseAST(test_expr, then_expr, else_expr)
+
+
     # Visit a parse tree produced by GrammarParser#Arith2Expr.
     def visitArith2Expr(self, ctx: GrammarParser.Arith2ExprContext):
         lhs = self.visit(ctx.expr(0))

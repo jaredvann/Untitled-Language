@@ -7,6 +7,9 @@ from typelib import *
 
 float_types = [ir.HalfType, ir.FloatType, ir.DoubleType]
 
+TRUE = ir.Constant(ir.IntType(1), 1)
+FALSE = ir.Constant(ir.IntType(1), 0)
+
 
 class LLVMCodeGenerator(object):
     def __init__(self):
@@ -32,6 +35,45 @@ class LLVMCodeGenerator(object):
 
     def _codegen_ArrayTST(self, node):
         return ir.Constant.literal_array([self._codegen(v) for v in node.vals])
+
+
+    def _codegen_IfElseTST(self, node: IfElseTST):
+        # Emit comparison value
+        test_val = self._codegen(node.test_expr)
+        cmp = self.builder.icmp_unsigned("==", test_val, TRUE)
+
+        # Create basic blocks to express the control flow, with a conditional
+        # branch to either then_bb or else_bb depending on cmp. else_bb and
+        # merge_bb are not yet attached to the function's list of BBs because
+        # if a nested IfExpr is generated we want to have a reasonably nested
+        # order of BBs generated into the function.
+        then_bb = self.builder.function.append_basic_block("then")
+        else_bb = ir.Block(self.builder.function, "else")
+        merge_bb = ir.Block(self.builder.function, "ifcont")
+        self.builder.cbranch(cmp, then_bb, else_bb)
+
+        # Emit the 'then' part
+        self.builder.position_at_start(then_bb)
+        then_val = self._codegen(node.then_expr)
+        self.builder.branch(merge_bb)
+
+        # Emission of then_val could have modified the current basic block. To
+        # properly set up the PHI, remember which block the 'then' part ends in.
+        then_bb = self.builder.block
+
+        # Emit the 'else' part
+        self.builder.function.basic_blocks.append(else_bb)
+        self.builder.position_at_start(else_bb)
+        else_val = self._codegen(node.else_expr)
+        self.builder.branch(merge_bb)
+
+        # Emit the merge ('ifcnt') block
+        self.builder.function.basic_blocks.append(merge_bb)
+        self.builder.position_at_start(merge_bb)
+        phi = self.builder.phi(ir_type_conv(node.type), "iftmp")
+        phi.add_incoming(then_val, then_bb)
+        phi.add_incoming(else_val, else_bb)
+        return phi
 
 
     def _codegen_ValueTST(self, node: ValueTST):

@@ -71,6 +71,15 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#InlineIfElseExpr.
+    def enterInlineIfElseExpr(self, ctx:GrammarParser.InlineIfElseExprContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#InlineIfElseExpr.
+    def exitInlineIfElseExpr(self, ctx:GrammarParser.InlineIfElseExprContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#Arith2Expr.
     def enterArith2Expr(self, ctx:GrammarParser.Arith2ExprContext):
         pass

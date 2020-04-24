@@ -23,6 +23,21 @@ class ArrayTST(TSTNode):
         return s
 
 
+class IfElseTST(TSTNode):
+    def __init__(self, type, test_expr, then_expr, else_expr) -> None:
+        self.type = type
+        self.test_expr = test_expr
+        self.then_expr = then_expr
+        self.else_expr = else_expr
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"IfElseTST({self.type})\n"
+        s += self.test_expr.dump(indent+2) + "\n"
+        s += self.then_expr.dump(indent+2) + "\n"
+        s += self.else_expr.dump(indent+2)
+        return s
+
+
 class ValueTST(TSTNode):
     def __init__(self, type: Type, val) -> None:
         self.type = type

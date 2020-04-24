@@ -44,6 +44,11 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#InlineIfElseExpr.
+    def visitInlineIfElseExpr(self, ctx:GrammarParser.InlineIfElseExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#Arith2Expr.
     def visitArith2Expr(self, ctx:GrammarParser.Arith2ExprContext):
         return self.visitChildren(ctx)

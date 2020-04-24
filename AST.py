@@ -14,6 +14,20 @@ class BoolAST(ASTNode):
         return " "*indent + f"BoolAST({self.val})"
 
 
+class IfElseAST(ASTNode):
+    def __init__(self, test_expr, then_expr, else_expr) -> None:
+        self.test_expr = test_expr
+        self.then_expr = then_expr
+        self.else_expr = else_expr
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"IfElseAST()\n"
+        s += self.test_expr.dump(indent+2) + "\n"
+        s += self.then_expr.dump(indent+2) + "\n"
+        s += self.else_expr.dump(indent+2)
+        return s
+
+
 class VariableAST(ASTNode):
     def __init__(self, name) -> None:
         self.name = name
