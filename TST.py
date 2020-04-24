@@ -4,6 +4,9 @@ from typelib import FunctionType, Type
 
 
 class TSTNode:
+    def __init__(self, type):
+        self.type = type
+
     def dump(self, indent=0):
         raise NotImplementedError
 
@@ -57,7 +60,7 @@ class FunctionCallTST(TSTNode):
 
 
 class FunctionTST(TSTNode):
-    def __init__(self, type: Type, name: str, args: tp.List[TSTNode], body: TSTNode) -> None:
+    def __init__(self, type: Type, name: str, args: tp.List[tp.Tuple[str, Type]], body: TSTNode) -> None:
         self.type = type
         self.name = name
         self.args = args
@@ -67,7 +70,7 @@ class FunctionTST(TSTNode):
         return self.name.startswith("_anon")
 
     def dump(self, indent=0) -> str:
-        arg_str = ", ".join(f"{arg.name}: {arg.type}" for arg in self.args)
+        arg_str = ", ".join(f"{arg[0]}: {arg[1]}" for arg in self.args)
 
         s = " "*indent + f"FunctionTST({self.type}; {self.name}({arg_str}) -> {self.type})\n"
         s += self.body.dump(indent + 2)

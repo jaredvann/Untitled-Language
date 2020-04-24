@@ -3,16 +3,11 @@ import typing as tp
 
 from AST import *
 import corelib
+from corelib import Bool, Float, Int, IntArray, FloatArray
 from TST import * 
 from Scope import Scope
 from typelib import *
-
-
-
-Int = Type("Int")
-Float = Type("Float")
-Bool = Type("Bool")
-Int_Array = Type("Array", [Int])
+from typesystem.map_types import map_types
 
 
 class TypeCheckerException(Exception): pass
@@ -65,20 +60,46 @@ class TypeChecker:
         return FunctionTST(ret_type, name, args, body_tst)
 
 
+    def resolve_functions(self, fn1: FunctionType, fn2: FunctionType) -> bool:
+        resolve_counter = 0
+        resolve_table = {}
+
+        # Iterate over all pairs of arguments in the two functions - no varargs
+        # so checking ordered pairs is sufficient
+        for a, b in zip(fn1.arg_types, fn2.arg_types):
+            print(a, b)
+
+            # map_types should cover all equality checking
+            res = map_types(a, b)
+
+            if res is False:
+                return False
+            
+            # TODO: cross comparison between all input parameters (and output?) - maybe wrap type in tuple
+
+        return True
+
+
+
     def _typecheck_FunctionCallAST(self, node: FunctionAST) -> Type:
         name = node.name
         
         args = [self._typecheck(arg) for arg in node.args]
         arg_types = [arg.type for arg in args]
 
+        fn_type = FunctionType(name, arg_types, None)
+
+        # Find functions with matching names
         functions = self.scope.find_functions(name)
 
         if len(functions) == 0:
-            error_text = f"Could not find function with name '{name}'"
-            raise TypeCheckerException(error_text)
+            raise TypeCheckerException(f"Could not find function with name '{name}'")
 
-        for fn in functions:
-            if arg_types == fn.arg_types:
+        # Find functions with matching numbers of arguments
+        filtered_functions = list(filter(lambda fn: len(fn.arg_types) == len(arg_types), functions))
+
+        for fn in filtered_functions:
+            if self.resolve_functions(fn_type, fn):
                 return FunctionCallTST(fn.ret_type, fn, args)
 
         error_text = f"Found function(s) with name '{name}' but incompatible inputs:\n"

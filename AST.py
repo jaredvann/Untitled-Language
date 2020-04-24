@@ -1,3 +1,4 @@
+import typing as tp
 
 
 class ASTNode:
@@ -55,7 +56,7 @@ class FloatAST(ASTNode):
 
 
 class FunctionCallAST(ASTNode):
-    def __init__(self, name: str, args: ASTNode) -> None:
+    def __init__(self, name: str, args: tp.List[ASTNode]) -> None:
         self.name = name
         self.args = args
 

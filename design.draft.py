@@ -354,6 +354,47 @@ for i in 0..=10:
 assert(type(range) == Range<Int>)
 
 
+# N-Dimensional ranges
+
+grid(0..128, 0..256)
+
+
+################################################################################
+# N-Dimensional Loops:
+
+# Using the same range for all dimensions:
+
+for i,j in 0..10:
+    pass
+
+# ... is syntactic sugar for ...
+
+for i,j in grid(0..10):
+    pass
+
+# ... which is equivalent to ...
+
+for i in 0..10:
+    for j in 0..10:
+        pass
+
+
+# Using different ranges for each dimension:
+
+for i,j in 0..128, 0..256:
+    pass
+
+# ... is syntactic sugar for ...
+
+for i,j in grid(0..128, 0..256):
+    pass
+
+# ... is equivalent to ...
+
+for i in 0..128:
+    for j in 0..256:
+        pass
+
 ################################################################################
 # Math Examples
 

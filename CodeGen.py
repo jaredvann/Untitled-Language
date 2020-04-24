@@ -1,21 +1,11 @@
 import llvmlite.ir as ir
 
 from TST import *
+from typeconv import ir_type_conv
 from typelib import *
 
 
 float_types = [ir.HalfType, ir.FloatType, ir.DoubleType]
-
-def ir_type_conv(t: Type) -> ir.Type:
-    if t == Type("Int"):
-        return ir.IntType(64)
-    elif t == Type("Float"):
-        return ir.DoubleType()
-    elif t.name == "Array":
-        return ir.ArrayType(ir_type_conv(t.type_generics[0]), t.num_generics[0])
-
-    else:
-        raise Exception(f"Conversion to IR for type '{t}' not found!")
 
 
 class LLVMCodeGenerator(object):
@@ -98,13 +88,13 @@ class LLVMCodeGenerator(object):
                 ret_ptr.initializer = ir.Constant.literal_array([ir.Constant(elem_type, 0)] * arr_len)
                 ret_type = ret_type.as_pointer()
 
-            functype = ir.FunctionType(ret_type, [ir_type_conv(arg.type) for arg in node.args])
+            functype = ir.FunctionType(ret_type, [ir_type_conv(arg[1]) for arg in node.args])
             
             func = ir.Function(self.module, functype, name)
         
         # Set function argument names from TST
         for i, arg in enumerate(func.args):
-            arg.name = node.args[i].name
+            arg.name = node.args[i][0]
             self.func_symbol_table[arg.name] = arg
         
         # Create the entry BB in the function and set the builder to it.

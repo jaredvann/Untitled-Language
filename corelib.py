@@ -1,68 +1,62 @@
 import llvmlite.ir as ir
 
+from CodeGen import LLVMCodeGenerator
 from Scope import Scope
+from typeconv import ir_type_conv
 from typelib import *
 
-Int = Type("Int")
-Float = Type("Float")
-Bool = Type("Bool")
-IntArray = Type("Array", [Int])
-FloatArray = Type("Array", [Float])
+Bool = ConcreteType("Bool")
+Float = ConcreteType("Float")
+Int = ConcreteType("Int")
+Null = ConcreteType("Null")
+
+IntArray = ConcreteType("Array", [Int])
+FloatArray = ConcreteType("Array", [Float])
 
 zero = ir.Constant(ir.IntType(64), 0)
 
-def ir_type_conv(t: Type) -> ir.Type:
-    if t == Type("Int"):
-        return ir.IntType(64)
-    elif t == Type("Float"):
-        return ir.DoubleType()
-    elif t.name == "Array":
-        return ir.ArrayType(ir_type_conv(t.type_generics[0]), t.num_generics[0])
-
-    else:
-        raise Exception(f"Conversion to IR for type '{t}' not found!")
 
 
-def _add_Int(cg: "LLVMCodeGenerator", args, arg_types):
+def _add_Int(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.add(args[0], args[1])
 
-def _sub_Int(cg: "LLVMCodeGenerator", args, arg_types):
+def _sub_Int(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.sub(args[0], args[1])
 
-def _mul_Int(cg: "LLVMCodeGenerator", args, arg_types):
+def _mul_Int(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.mul(args[0], args[1])
 
-def _div_Int(cg: "LLVMCodeGenerator", args, arg_types):
+def _div_Int(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.sdiv(args[0], args[1])
 
-def _rem_Int(cg: "LLVMCodeGenerator", args, arg_types):
+def _rem_Int(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.srem(args[0], args[1])
 
 
-def _add_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _add_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.fadd(args[0], args[1])
 
-def _sub_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _sub_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.fsub(args[0], args[1])
 
-def _mul_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _mul_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.fmul(args[0], args[1])
 
-def _div_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _div_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.fdiv(args[0], args[1])
 
-def _rem_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _rem_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.frem(args[0], args[1])
 
 
-def _pow_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _pow_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.call(ir.Function(cg.module, ir.FunctionType(arg_types[0], arg_types), "pow"), args)
 
-def _abs_Float(cg: "LLVMCodeGenerator", args, arg_types):
+def _abs_Float(cg: LLVMCodeGenerator, args, arg_types):
     return cg.builder.call(ir.Function(cg.module, ir.FunctionType(arg_types[0], arg_types), "fabs"), args)
 
 
-def _index(cg: "LLVMCodeGenerator", args, arg_types):
+def _index(cg: LLVMCodeGenerator, args, arg_types):
     arr_ptr = cg.builder.alloca(arg_types[0])
     cg.builder.store(args[0], arr_ptr)
 
@@ -82,7 +76,7 @@ scope.add_function(FunctionType("*", [Int, Int], Int, _mul_Int))
 scope.add_function(FunctionType("/", [Int, Int], Int, _div_Int))
 scope.add_function(FunctionType("%", [Int, Int], Int, _rem_Int))
 
-scope.add_function(FunctionType("+", [Float, Float], Float, _add_Float))
+# scope.add_function(FunctionType("+", [Float, Float], Float, _add_Float))
 scope.add_function(FunctionType("-", [Float, Float], Float, _sub_Float))
 scope.add_function(FunctionType("*", [Float, Float], Float, _mul_Float))
 scope.add_function(FunctionType("/", [Float, Float], Float, _div_Float))
@@ -104,5 +98,8 @@ scope.add_function(FunctionType("sin", [Float], Float))
 scope.add_function(FunctionType("cos", [Float], Float))
 scope.add_function(FunctionType("tan", [Float], Float))
 
-scope.add_function(FunctionType("index", [IntArray, Int], Int, _index))
-scope.add_function(FunctionType("index", [FloatArray, Int], Float, _index))
+scope.add_function(FunctionType("index", [Type("Array", [Int], ['N']), Int], Int, _index))
+# scope.add_function(FunctionType("index", [FloatArray, Int], Float, _index))
+
+
+# scope.add_function(FunctionType("sum", [Type("Array", [Int], ['N'])], Int))

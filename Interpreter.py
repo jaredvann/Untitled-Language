@@ -19,6 +19,7 @@ from ErrorListener import ErrorListener
 # from typelib import TypeVar
 from TST import *
 from TypeChecker import TypeChecker, TypeCheckerException
+from typeconv import ctype_type_conv
 from Visitor import Visitor
 
 
@@ -33,17 +34,6 @@ Compilation stages:
 
 """
 
-
-def ctype_type_conv(t: Type) -> ir.Type:
-    if t == Type("Int"):
-        return ctypes.c_int64
-    elif t == Type("Float"):
-        return ctypes.c_double
-    elif t.name == "Array":
-        return np.ctypeslib.ndpointer(dtype=ctype_type_conv(t.type_generics[0]), shape=(t.num_generics[0],))
-
-    else:
-        raise Exception(f"Conversion to ctype for type '{t}' not found!")
 
 
 class Interpreter():
