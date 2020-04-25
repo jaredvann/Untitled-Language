@@ -171,7 +171,7 @@ class LLVMCodeGenerator(object):
         return func
 
     
-    def _codegen_MultiTST(self, node: MultiTST):
+    def _codegen_BlockTST(self, node: BlockTST):
         for stmt in node.statements:
             ret = self._codegen(stmt)
 
@@ -205,3 +205,25 @@ class LLVMCodeGenerator(object):
 
         self.func_symbol_table[node.name] = (var_addr, True)
 
+
+    def _codegen_WhileLoopTST(self, node: WhileLoopTST):
+        preheader_bb = self.builder.block
+        loop_bb = self.builder.function.append_basic_block("loop")
+        after_bb = self.builder.function.append_basic_block("after_loop")
+
+        # Test condition and enter loop if condition met
+        init_cond = self._codegen(node.condition)
+        self.builder.cbranch(init_cond, loop_bb, after_bb)
+
+        # Move to loop block
+        self.builder.position_at_start(loop_bb)
+
+        # Run loop code
+        self._codegen(node.body)
+
+        # Test condition again
+        cond = self._codegen(node.condition)
+        self.builder.cbranch(cond, loop_bb, after_bb)
+
+        # Move out of loop block
+        self.builder.position_at_start(after_bb)

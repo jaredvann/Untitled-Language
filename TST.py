@@ -95,7 +95,7 @@ class FunctionTST(TSTNode):
         return s
 
 
-class MultiTST(TSTNode):
+class BlockTST(TSTNode):
     def __init__(self, type, statements) -> None:
         self.type = type
         self.statements = statements
@@ -129,3 +129,15 @@ class VarDeclTST(TSTNode):
         s += self.value.dump(indent + 2)
         return s
 
+
+class WhileLoopTST(TSTNode):
+    def __init__(self, condition: TSTNode, body: TSTNode) -> None:
+        self.type = Null
+        self.condition = condition
+        self.body = body
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"WhileLoopTST()\n"
+        s += self.condition.dump(indent + 2) + "\n"
+        s += self.body.dump(indent + 2)
+        return s

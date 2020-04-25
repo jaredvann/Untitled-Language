@@ -13,21 +13,28 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#prog.
     def visitProg(self, ctx: GrammarParser.ProgContext):
-        if ctx.multi():
-            return FunctionAST.create_anonymous(self.visit(ctx.multi()))
+        if ctx.stmt():
+            body = BlockAST([self.visit(stmt) for stmt in ctx.stmt()])
+            return FunctionAST.create_anonymous(body)
 
         else:
             return self.visit(ctx.funcDecl())
 
 
-    # Visit a parse tree produced by GrammarParser#multi.
-    def visitMulti(self, ctx: GrammarParser.MultiContext):
-        return MultiAST([self.visit(stmt) for stmt in ctx.stmt()])
+    # Visit a parse tree produced by GrammarParser#block.
+    def visitBlock(self, ctx: GrammarParser.BlockContext):
+        return BlockAST([self.visit(stmt) for stmt in ctx.stmt()])
 
 
     # Visit a parse tree produced by GrammarParser#stmt.
     def visitStmt(self, ctx: GrammarParser.StmtContext):
         return self.visitChildren(ctx)
+
+
+
+    # Visit a parse tree produced by GrammarParser#whileLoop.
+    def visitWhileLoop(self, ctx: GrammarParser.WhileLoopContext):
+        return WhileLoopAST(self.visit(ctx.condition), self.visit(ctx.body))
 
 
     # Visit a parse tree produced by GrammarParser#TermExpr.
@@ -120,7 +127,7 @@ class Visitor(GrammarVisitor):
     def visitFuncDecl(self, ctx: GrammarParser.FuncDeclContext):
         name = ctx.NAME().getText()
         args = self.visit(ctx.funcDeclArgs())
-        body = self.visit(ctx.multi())
+        body = self.visit(ctx.block())
 
         return FunctionAST(name, args, body)
 

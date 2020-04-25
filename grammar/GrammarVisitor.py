@@ -14,8 +14,8 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by GrammarParser#multi.
-    def visitMulti(self, ctx:GrammarParser.MultiContext):
+    # Visit a parse tree produced by GrammarParser#block.
+    def visitBlock(self, ctx:GrammarParser.BlockContext):
         return self.visitChildren(ctx)
 
 

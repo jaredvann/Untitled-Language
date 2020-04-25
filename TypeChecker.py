@@ -137,10 +137,10 @@ class TypeChecker:
         return ValueTST(Float, node.val)
 
 
-    def _typecheck_MultiAST(self, node: MultiAST) -> MultiTST:
+    def _typecheck_BlockAST(self, node: BlockAST) -> BlockTST:
         statements = [self._typecheck(stmt) for stmt in node.statements]
 
-        return MultiTST(statements[-1].type, statements)
+        return BlockTST(statements[-1].type, statements)
 
 
     def _typecheck_ArrayAST(self, node: ArrayAST) -> ArrayTST:
@@ -193,3 +193,15 @@ class TypeChecker:
         self.scope.add_var(Var(node.name, value.type))
 
         return VarDeclTST(node.mutable, node.name, value)
+
+
+    def _typecheck_WhileLoopAST(self, node: WhileLoopAST) -> WhileLoopTST:
+        condition = self._typecheck(node.condition)
+
+        if condition.type != Bool:
+            raise TypeCheckerException(f"Condition in while loop must evaluate to bool (got '{condition.type}')")
+
+        body = self._typecheck(node.body)
+
+        return WhileLoopTST(condition, body)
+

@@ -17,12 +17,12 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by GrammarParser#multi.
-    def enterMulti(self, ctx:GrammarParser.MultiContext):
+    # Enter a parse tree produced by GrammarParser#block.
+    def enterBlock(self, ctx:GrammarParser.BlockContext):
         pass
 
-    # Exit a parse tree produced by GrammarParser#multi.
-    def exitMulti(self, ctx:GrammarParser.MultiContext):
+    # Exit a parse tree produced by GrammarParser#block.
+    def exitBlock(self, ctx:GrammarParser.BlockContext):
         pass
 
 

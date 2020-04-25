@@ -38,12 +38,12 @@ class VariableAST(ASTNode):
         return " "*indent + f"VariableAST({self.name})"
 
 
-class MultiAST(ASTNode):
+class BlockAST(ASTNode):
     def __init__(self, statements) -> None:
         self.statements = statements
 
     def dump(self, indent=0) -> str:
-        return " "*indent + f"MultiAST()\n" + "\n".join(val.dump(indent+2) for val in self.statements)
+        return " "*indent + f"BlockAST()\n" + "\n".join(val.dump(indent+2) for val in self.statements)
 
 
 class ArrayAST(ASTNode):
@@ -141,3 +141,14 @@ class VarDeclAST(ASTNode):
         s += self.value.dump(indent + 2)
         return s
 
+
+class WhileLoopAST(ASTNode):
+    def __init__(self, condition: ASTNode, body: ASTNode) -> None:
+        self.condition = condition
+        self.body = body
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"WhileLoopAST()\n"
+        s += self.condition.dump(indent + 2) + "\n"
+        s += self.body.dump(indent + 2)
+        return s

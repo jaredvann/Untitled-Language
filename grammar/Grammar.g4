@@ -1,14 +1,14 @@
 grammar Grammar;
 
-prog            : multi | funcDecl;
-multi           : stmt (';' stmt)*;
-stmt            : forLoop | whileLoop | varDecl | varAssign | expr;
+prog            : stmt (';' stmt)* | funcDecl;
+block           : '{' stmt (';' stmt)* '}';
+stmt            : block | forLoop | whileLoop | varDecl | varAssign | expr;
 
 
 rangeExpr: int_ '..' int_;
-forLoop: 'for' NAME 'in' rangeExpr ':' multi;
+forLoop: 'for' NAME 'in' rangeExpr block;
 
-whileLoop: 'while' expr ':' multi;
+whileLoop: 'while' condition=expr body=block;
 
 expr:   expr 'if' expr 'else' expr              # InlineIfElseExpr
     |   expr op=('<'|'>'|'<='|'>=') expr        # OrderingExpr
@@ -33,7 +33,7 @@ varAssign       : name=NAME '=' value=expr;
 funcCall    : name=NAME '(' ( expr (',' expr)* )? ')';
 // methodCall  : term '.' NAMEL '(' ( expr (',' expr)* )? ')';
 
-funcDecl            : 'fn' NAME '(' funcDeclArgs ')' ':' multi;
+funcDecl            : 'fn' NAME '(' funcDeclArgs ')' block;
 funcDeclArgs        : (funcDeclArg (',' funcDeclArg)*)?;
 funcDeclArg         : NAME ':' NAMEU;
 
