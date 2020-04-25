@@ -1,5 +1,7 @@
 import typing as tp
 
+from typelib import ConcreteType
+
 
 class ASTNode:
     def dump(self, indent=0):
@@ -29,7 +31,7 @@ class IfElseAST(ASTNode):
 
 
 class VariableAST(ASTNode):
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
 
     def dump(self, indent=0) -> str:
@@ -116,3 +118,26 @@ class FunctionAST(ASTNode):
         s = " "*indent + self.__repr__() + "\n"
         s += self.body.dump(indent + 2)
         return s
+
+class VarAssignAST(ASTNode):
+    def __init__(self, name: str, value: ASTNode) -> None:
+        self.name = name
+        self.value = value
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"VarAssignAST({self.name})\n"
+        s += self.value.dump(indent + 2)
+        return s
+
+
+class VarDeclAST(ASTNode):
+    def __init__(self, mutable: bool, name: str, value: ASTNode) -> None:
+        self.mutable = mutable
+        self.name = name
+        self.value = value
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"VarDeclAST({'mut ' if self.mutable else ''}{self.name})\n"
+        s += self.value.dump(indent + 2)
+        return s
+

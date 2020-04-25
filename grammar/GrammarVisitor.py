@@ -14,8 +14,28 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#multi.
+    def visitMulti(self, ctx:GrammarParser.MultiContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#stmt.
     def visitStmt(self, ctx:GrammarParser.StmtContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#rangeExpr.
+    def visitRangeExpr(self, ctx:GrammarParser.RangeExprContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#forLoop.
+    def visitForLoop(self, ctx:GrammarParser.ForLoopContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#whileLoop.
+    def visitWhileLoop(self, ctx:GrammarParser.WhileLoopContext):
         return self.visitChildren(ctx)
 
 
@@ -64,6 +84,16 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#varDecl.
+    def visitVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#varAssign.
+    def visitVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#funcCall.
     def visitFuncCall(self, ctx:GrammarParser.FuncCallContext):
         return self.visitChildren(ctx)
@@ -101,6 +131,16 @@ class GrammarVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by GrammarParser#subscript.
     def visitSubscript(self, ctx:GrammarParser.SubscriptContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#int_.
+    def visitInt_(self, ctx:GrammarParser.Int_Context):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#float_.
+    def visitFloat_(self, ctx:GrammarParser.Float_Context):
         return self.visitChildren(ctx)
 
 

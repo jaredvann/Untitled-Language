@@ -1,6 +1,9 @@
 import typing as tp
 
-from typelib import FunctionType, Type
+from typelib import ConcreteType, FunctionType, Type
+
+
+Null = ConcreteType("Null")
 
 
 class TSTNode:
@@ -90,3 +93,39 @@ class FunctionTST(TSTNode):
         s = " "*indent + f"FunctionTST({self.type}; {self.name}({arg_str}) -> {self.type})\n"
         s += self.body.dump(indent + 2)
         return s
+
+
+class MultiTST(TSTNode):
+    def __init__(self, type, statements) -> None:
+        self.type = type
+        self.statements = statements
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"MultiTST()\n" + "\n".join(val.dump(indent+2) for val in self.statements)
+
+
+
+class VarAssignTST(TSTNode):
+    def __init__(self, name: str, value: TSTNode) -> None:
+        self.type = Null
+        self.name = name
+        self.value = value
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"VarAssignTST({self.name})\n"
+        s += self.value.dump(indent + 2)
+        return s
+
+
+class VarDeclTST(TSTNode):
+    def __init__(self, mutable: bool, name: str, value: TSTNode) -> None:
+        self.type = Null
+        self.mutable = mutable
+        self.name = name
+        self.value = value
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"VarDeclTST({'mut ' if self.mutable else ''}{self.name})\n"
+        s += self.value.dump(indent + 2)
+        return s
+

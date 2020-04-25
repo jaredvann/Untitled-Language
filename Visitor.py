@@ -13,18 +13,16 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#prog.
     def visitProg(self, ctx: GrammarParser.ProgContext):
-        if ctx.stmt():
-            return FunctionAST.create_anonymous(self.visit(ctx.stmt()))
+        if ctx.multi():
+            return FunctionAST.create_anonymous(self.visit(ctx.multi()))
 
         else:
             return self.visit(ctx.funcDecl())
 
-        # stmts = [self.visit(stmt) for stmt in ctx.stmt()]
 
-        # if len(stmts) == 1:
-        #     return stmts[0]
-        # else:
-        #     return MultiAST([self.visit(stmt) for stmt in ctx.stmt()])
+    # Visit a parse tree produced by GrammarParser#multi.
+    def visitMulti(self, ctx: GrammarParser.MultiContext):
+        return MultiAST([self.visit(stmt) for stmt in ctx.stmt()])
 
 
     # Visit a parse tree produced by GrammarParser#stmt.
@@ -46,7 +44,7 @@ class Visitor(GrammarVisitor):
 
 
     # Visit a parse tree produced by GrammarParser#EqualityExpr.
-    def visitEqualityExpr(self, ctx:GrammarParser.EqualityExprContext):
+    def visitEqualityExpr(self, ctx: GrammarParser.EqualityExprContext):
         lhs = self.visit(ctx.expr(0))
         rhs = self.visit(ctx.expr(1))
 
@@ -62,7 +60,7 @@ class Visitor(GrammarVisitor):
 
 
     # Visit a parse tree produced by GrammarParser#OrderingExpr.
-    def visitOrderingExpr(self, ctx:GrammarParser.OrderingExprContext):
+    def visitOrderingExpr(self, ctx: GrammarParser.OrderingExprContext):
         lhs = self.visit(ctx.expr(0))
         rhs = self.visit(ctx.expr(1))
 
@@ -70,7 +68,7 @@ class Visitor(GrammarVisitor):
 
 
     # Visit a parse tree produced by GrammarParser#InlineIfElseExpr.
-    def visitInlineIfElseExpr(self, ctx:GrammarParser.InlineIfElseExprContext):
+    def visitInlineIfElseExpr(self, ctx: GrammarParser.InlineIfElseExprContext):
         then_expr = self.visit(ctx.expr(0))
         test_expr = self.visit(ctx.expr(1))
         else_expr = self.visit(ctx.expr(2))
@@ -96,6 +94,20 @@ class Visitor(GrammarVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#varDecl.
+    def visitVarDecl(self, ctx: GrammarParser.VarDeclContext):
+        mutable = ctx.prefix.text == "mut"
+        name = ctx.name.text
+        value = self.visit(ctx.value)
+
+        return VarDeclAST(mutable, name, value)
+
+
+    # Visit a parse tree produced by GrammarParser#varAssign.
+    def visitVarAssign(self, ctx: GrammarParser.VarAssignContext):
+        return VarAssignAST(ctx.name.text, self.visit(ctx.value))
+
+
     # Visit a parse tree produced by GrammarParser#funcCall.
     def visitFuncCall(self, ctx: GrammarParser.FuncCallContext):
         name = ctx.NAME().getText()
@@ -108,7 +120,7 @@ class Visitor(GrammarVisitor):
     def visitFuncDecl(self, ctx: GrammarParser.FuncDeclContext):
         name = ctx.NAME().getText()
         args = self.visit(ctx.funcDeclArgs())
-        body = self.visit(ctx.stmt())
+        body = self.visit(ctx.multi())
 
         return FunctionAST(name, args, body)
 
@@ -136,10 +148,10 @@ class Visitor(GrammarVisitor):
             return BoolAST(False)
         elif ctx.NAME():
             return VariableAST(ctx.NAME().getText())
-        elif ctx.INT():
-            return IntAST(int(ctx.INT().getText()))
-        elif ctx.FLOAT():
-            return FloatAST(float(ctx.FLOAT().getText()))
+        elif ctx.int_():
+            return IntAST(int(ctx.int_().getText()))
+        elif ctx.float_():
+            return FloatAST(float(ctx.float_().getText()))
         else:
             raise Exception
 
@@ -153,4 +165,4 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#subscript.
     def visitSubscript(self, ctx: GrammarParser.SubscriptContext):
-        return FunctionCallAST(f"index", [self.visit(ctx.term()), IntAST(int(ctx.INT().getText()))])
+        return FunctionCallAST(f"index", [self.visit(ctx.term()), IntAST(int(ctx.int_().getText()))])

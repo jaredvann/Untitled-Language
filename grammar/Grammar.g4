@@ -1,8 +1,14 @@
 grammar Grammar;
 
-prog            : stmt | funcDecl;
-// suite           : stmt (';' stmt)*;
-stmt            : expr;
+prog            : multi | funcDecl;
+multi           : stmt (';' stmt)*;
+stmt            : forLoop | whileLoop | varDecl | varAssign | expr;
+
+
+rangeExpr: int_ '..' int_;
+forLoop: 'for' NAME 'in' rangeExpr ':' multi;
+
+whileLoop: 'while' expr ':' multi;
 
 expr:   expr 'if' expr 'else' expr              # InlineIfElseExpr
     |   expr op=('<'|'>'|'<='|'>=') expr        # OrderingExpr
@@ -18,22 +24,30 @@ termChain   : term | subscript;
 
 term        : funcCall | array | atom | parens;
 
+
+// varDecl         : prefix=('let' | 'mut') NAME (':' NAMEU)? '=' expr;
+varDecl         : prefix=('let' | 'mut') name=NAME '=' value=expr;
+varAssign       : name=NAME '=' value=expr;
+
+
 funcCall    : name=NAME '(' ( expr (',' expr)* )? ')';
 // methodCall  : term '.' NAMEL '(' ( expr (',' expr)* )? ')';
 
-funcDecl            : 'fn' NAME '(' funcDeclArgs ')' ':' stmt;
+funcDecl            : 'fn' NAME '(' funcDeclArgs ')' ':' multi;
 funcDeclArgs        : (funcDeclArg (',' funcDeclArg)*)?;
 funcDeclArg         : NAME ':' NAMEU;
 
 parens      : '(' expr? ')';
 
-atom        : 'True' | 'False' | NAME | INT | FLOAT;
+atom        : 'True' | 'False' | NAME | int_ | float_;
 
 // arglist     : '(' ( expr (',' expr)* ','? )? ')';
 array       : '[' expr (',' expr)* ','? ']';
 // array       : '[' ( expr (',' expr)* ','? )? ']';
-subscript   : term '[' INT ']';
+subscript   : term '[' int_ ']';
 
+int_         : DIGIT+;
+float_       : DIGIT+ DOT DIGIT* | DOT DIGIT+;
 
 ASSIGN      : '=';
 
@@ -60,9 +74,6 @@ CLOSE_BRACK : ']';
 NAMEU       :  [A-Z][a-zA-Z_0-9]+;
 NAME        :  [_a-zA-Z][a-zA-Z_0-9]*;
 WS          :  [ \t]+ -> skip;        // toss out whitespace
-
-INT         : DIGIT+;
-FLOAT       : DIGIT+ DOT DIGIT* | DOT DIGIT+;
 
 DIGIT       : [0-9];
 DOT         : '.';

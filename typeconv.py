@@ -13,6 +13,8 @@ def ir_type_conv(t: ConcreteType) -> ir.Type:
         return ir.IntType(64)
     elif t == ConcreteType("Float"):
         return ir.DoubleType()
+    elif t == ConcreteType("Null"):
+        return ir.VoidType()
     elif t.name == "Array":
         return ir.ArrayType(ir_type_conv(t.type_generics[0]), t.num_generics[0])
 
@@ -27,6 +29,8 @@ def ctype_type_conv(t: ConcreteType) -> ir.Type:
         return ctypes.c_int64
     elif t == ConcreteType("Float"):
         return ctypes.c_double
+    elif t == ConcreteType("Null"):
+        return ctypes.c_void_p
     elif t.name == "Array":
         return np.ctypeslib.ndpointer(dtype=ctype_type_conv(t.type_generics[0]), shape=(t.num_generics[0],))
 

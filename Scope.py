@@ -20,7 +20,7 @@ class Scope:
     def add_function(self, func):
         self._functions.append(func)
 
-    def find_var(self, name) -> tp.Optional[Var]:
+    def find_var(self, name: str) -> tp.Optional[Var]:
         for var in self._vars:
             if var.name == name:
                 return var
@@ -30,7 +30,7 @@ class Scope:
 
         return None
 
-    def find_type(self, name) -> tp.Optional[Type]:
+    def find_type(self, name: str) -> tp.Optional[Type]:
         for type_ in self._types:
             if type_.name == name:
                 return type_
@@ -40,7 +40,7 @@ class Scope:
 
         return None
 
-    def find_functions(self, name) -> tp.List[FunctionType]:
+    def find_functions(self, name: str) -> tp.List[FunctionType]:
         functions = []
 
         for func in self._functions:

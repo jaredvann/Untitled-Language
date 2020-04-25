@@ -137,10 +137,10 @@ class TypeChecker:
         return ValueTST(Float, node.val)
 
 
-    def _typecheck_MultiAST(self, node: MultiAST) -> tp.List[Type]:
-        raise NotImplementedError
+    def _typecheck_MultiAST(self, node: MultiAST) -> MultiTST:
+        statements = [self._typecheck(stmt) for stmt in node.statements]
 
-        return [self._typecheck(stmt) for stmt in node.stmts]
+        return MultiTST(statements[-1].type, statements)
 
 
     def _typecheck_ArrayAST(self, node: ArrayAST) -> ArrayTST:
@@ -162,3 +162,34 @@ class TypeChecker:
             raise TypeCheckerException(f"Variable '{name}' not defined")
 
         return VariableTST(var.type, name)
+
+
+    def _typecheck_VarAssignAST(self, node: VarAssignAST) -> VarAssignTST:
+        var = self.scope.find_var(node.name)
+
+        if var is None:
+            raise TypeCheckerException(f"Variable '{node.name}' is not defined")
+
+        # TODO: add mutability check
+
+        value = self._typecheck(node.value)
+
+        if value.type != var.type:
+            raise TypeCheckerException(f"Type of assigned value ('{value.type}') does not match type of variable ('{var.type}')")
+
+        return VarAssignTST(node.name, value)
+
+
+    def _typecheck_VarDeclAST(self, node: VarDeclAST) -> VarDeclTST:
+        if self.scope.find_var(node.name) is not None:
+            raise TypeCheckerException(f"Variable '{node.name}' already defined")
+
+        value = self._typecheck(node.value)
+        scopetype = self.scope.find_type(value.type)
+
+        # if scopetype is None:
+        #     raise TypeCheckerException(f"Type '{value.type}' not found")
+
+        self.scope.add_var(Var(node.name, value.type))
+
+        return VarDeclTST(node.mutable, node.name, value)

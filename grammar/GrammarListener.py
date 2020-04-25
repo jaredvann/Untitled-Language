@@ -17,12 +17,48 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#multi.
+    def enterMulti(self, ctx:GrammarParser.MultiContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#multi.
+    def exitMulti(self, ctx:GrammarParser.MultiContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#stmt.
     def enterStmt(self, ctx:GrammarParser.StmtContext):
         pass
 
     # Exit a parse tree produced by GrammarParser#stmt.
     def exitStmt(self, ctx:GrammarParser.StmtContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#rangeExpr.
+    def enterRangeExpr(self, ctx:GrammarParser.RangeExprContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#rangeExpr.
+    def exitRangeExpr(self, ctx:GrammarParser.RangeExprContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#forLoop.
+    def enterForLoop(self, ctx:GrammarParser.ForLoopContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#forLoop.
+    def exitForLoop(self, ctx:GrammarParser.ForLoopContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#whileLoop.
+    def enterWhileLoop(self, ctx:GrammarParser.WhileLoopContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#whileLoop.
+    def exitWhileLoop(self, ctx:GrammarParser.WhileLoopContext):
         pass
 
 
@@ -107,6 +143,24 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#varDecl.
+    def enterVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#varDecl.
+    def exitVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#varAssign.
+    def enterVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#varAssign.
+    def exitVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#funcCall.
     def enterFuncCall(self, ctx:GrammarParser.FuncCallContext):
         pass
@@ -176,6 +230,24 @@ class GrammarListener(ParseTreeListener):
 
     # Exit a parse tree produced by GrammarParser#subscript.
     def exitSubscript(self, ctx:GrammarParser.SubscriptContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#int_.
+    def enterInt_(self, ctx:GrammarParser.Int_Context):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#int_.
+    def exitInt_(self, ctx:GrammarParser.Int_Context):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#float_.
+    def enterFloat_(self, ctx:GrammarParser.Float_Context):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#float_.
+    def exitFloat_(self, ctx:GrammarParser.Float_Context):
         pass
 
 

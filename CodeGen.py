@@ -19,13 +19,20 @@ class LLVMCodeGenerator(object):
         self.builder = None
 
         # Manages a symbol table while a function is being codegen'd. Maps var
-        # names to ir.Value.
+        # names to (ir.Value, bool).
         self.func_symbol_table = {}
 
 
     def generate_code(self, node: FunctionType):
         assert isinstance(node, FunctionTST)
         return self._codegen(node)
+
+
+    def _create_entry_block_alloca(self, name, ir_type):
+        # Create an alloca in the entry BB of the current function.
+        builder = ir.IRBuilder()
+        builder.position_at_start(self.builder.function.entry_basic_block)
+        return builder.alloca(ir_type, size=None, name=name)
 
 
     def _codegen(self, node: TSTNode):
@@ -81,7 +88,12 @@ class LLVMCodeGenerator(object):
 
 
     def _codegen_VariableTST(self, node: VariableTST):
-        return self.func_symbol_table[node.name]
+        var, stack = self.func_symbol_table[node.name]
+
+        if stack:
+            return self.builder.load(var, node.name)
+        else:
+            return var
 
 
     def _codegen_FunctionCallTST(self, node: FunctionCallTST):
@@ -137,7 +149,7 @@ class LLVMCodeGenerator(object):
         # Set function argument names from TST
         for i, arg in enumerate(func.args):
             arg.name = node.args[i].name
-            self.func_symbol_table[arg.name] = arg
+            self.func_symbol_table[arg.name] = (arg, False)
         
         # Create the entry BB in the function and set the builder to it.
         bb_entry = func.append_basic_block("entry")
@@ -151,7 +163,45 @@ class LLVMCodeGenerator(object):
         if node.type.name == "Array":
             self.builder.store(ret_val, ret_ptr)
             self.builder.ret(ret_ptr)
+        elif node.type.name == "Null":
+            self.builder.ret_void()
         else:
             self.builder.ret(ret_val)
 
         return func
+
+    
+    def _codegen_MultiTST(self, node: MultiTST):
+        for stmt in node.statements:
+            ret = self._codegen(stmt)
+
+        return ret
+
+
+    def _codegen_VarAssignTST(self, node: VarAssignTST):
+        ir_type = ir_type_conv(node.value.type)
+
+        new_val = self._codegen(node.value)
+        var_addr, stack = self.func_symbol_table[node.name]
+
+        if not stack:
+            raise Exception("Cannot assign to value not on stack - needs mutability fix")
+
+        self.builder.store(new_val, var_addr)
+
+
+    def _codegen_VarDeclTST(self, node: VarDeclTST):
+        ir_type = ir_type_conv(node.value.type)
+
+        init_val = self._codegen(node.value)
+
+        # Create an alloca for the induction var and store the init value to
+        # it. Save and restore location of our builder because
+        # _create_entry_block_alloca may modify it (llvmlite issue #44).
+        saved_block = self.builder.block
+        var_addr = self._create_entry_block_alloca(node.name, ir_type)
+        self.builder.position_at_end(saved_block)
+        self.builder.store(init_val, var_addr)
+
+        self.func_symbol_table[node.name] = (var_addr, True)
+
