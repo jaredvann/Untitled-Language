@@ -3,7 +3,7 @@ import typing as tp
 
 from AST import *
 import corelib
-from corelib import Bool, Float, Int, IntArray, FloatArray
+from corelib import Bool, Float, Int
 from TST import * 
 from Scope import Scope
 from typelib import *
@@ -24,14 +24,61 @@ class TypeChecker:
     def check(self, node: ASTNode) -> TSTNode:
         return self._typecheck(node)
 
+    
+    def _resolve_functions(self, fn1: FunctionType, fn2: FunctionType) -> bool:
+        for a, b in zip(fn1.arg_types, fn2.arg_types):
+            res = map_types(a, b)
+
+            if res is False:
+                return False
+            
+            # TODO: cross comparison between all input parameters (and output?) - maybe wrap type in tuple
+
+        return True
+
 
     def _typecheck(self, node: ASTNode) -> TSTNode:
         method = "_typecheck_" + node.__class__.__name__
         return getattr(self, method)(node)
 
 
+    def _typecheck_ArrayAST(self, node: ArrayAST) -> ArrayTST:
+        typed_vals = [self._typecheck(val) for val in node.vals]
+        types = list(set(val.type for val in typed_vals))
+
+        if len(types) > 1:
+            raise TypeCheckerException(f"Found multiple types in array: {types}")
+
+        return ArrayTST(types[0], typed_vals)
+
+
+    def _typecheck_BlockAST(self, node: BlockAST) -> BlockTST:
+        statements = [self._typecheck(stmt) for stmt in node.statements]
+        return BlockTST(statements)
+
+
     def _typecheck_BoolAST(self, node: BoolAST) -> ValueTST:
         return ValueTST(Bool, node.val)
+
+
+    def _typecheck_FloatAST(self, node: FloatAST) -> ValueTST:
+        return ValueTST(Float, node.val)
+
+
+    def _typecheck_ForLoopAST(self, node: ForLoopAST) -> ForLoopTST:
+        iterator = self._typecheck(node.iterator)
+
+        self.scope = Scope(self.scope)
+
+        index_var = VariableTST(Int, node.index_var.name)
+        index_var_type = Var(node.index_var.name, Int)
+        self.scope.add_var(index_var_type)
+
+        body = self._typecheck(node.body)
+
+        self.scope = self.scope.parent
+
+        return ForLoopTST(body.type, index_var, iterator, body)
 
 
     def _typecheck_FunctionAST(self, node: FunctionAST) -> FunctionTST:
@@ -61,41 +108,7 @@ class TypeChecker:
 
         self.scope.add_function(fn)
 
-        return FunctionTST(ret_type, name, args, body_tst)
-
-    
-    def _typecheck_IfElseAST(self, node: IfElseAST) -> IfElseTST:
-        test_expr_tst = self._typecheck(node.test_expr)
-        then_expr_tst = self._typecheck(node.then_expr)
-        else_expr_tst = self._typecheck(node.else_expr)
-
-        if test_expr_tst.type != Bool:
-            raise TypeCheckerException(f"Test expression does not evaluate to Bool (got '{test_expr_tst.type}')")
-
-        if then_expr_tst.type != else_expr_tst.type:
-            raise TypeCheckerException(f"Types of both branches on if else must be equal (got '{then_expr_tst.type}' and '{else_expr_tst.type}')")
-
-        return IfElseTST(then_expr_tst.type, test_expr_tst, then_expr_tst, else_expr_tst)
-
-
-    def resolve_functions(self, fn1: FunctionType, fn2: FunctionType) -> bool:
-        # resolve_counter = 0
-        # resolve_table = {}
-
-        # Iterate over all pairs of arguments in the two functions - no varargs
-        # so checking ordered pairs is sufficient
-        for a, b in zip(fn1.arg_types, fn2.arg_types):
-            # print(a, b)
-
-            # map_types should cover all equality checking
-            res = map_types(a, b)
-
-            if res is False:
-                return False
-            
-            # TODO: cross comparison between all input parameters (and output?) - maybe wrap type in tuple
-
-        return True
+        return FunctionTST(name, args, body_tst)
 
 
     def _typecheck_FunctionCallAST(self, node: FunctionAST) -> Type:
@@ -116,8 +129,8 @@ class TypeChecker:
         filtered_functions = list(filter(lambda fn: len(fn.arg_types) == len(arg_types), functions))
 
         for fn in filtered_functions:
-            if self.resolve_functions(fn_type, fn):
-                return FunctionCallTST(fn.ret_type, fn, args)
+            if self._resolve_functions(fn_type, fn):
+                return FunctionCallTST(fn, args)
 
         error_text = f"Found function(s) with name '{name}' but incompatible inputs:\n"
 
@@ -129,28 +142,26 @@ class TypeChecker:
         raise TypeCheckerException(error_text)
 
 
+    def _typecheck_IfElseAST(self, node: IfElseAST) -> IfElseTST:
+        test_expr_tst = self._typecheck(node.test_expr)
+        then_expr_tst = self._typecheck(node.then_expr)
+        else_expr_tst = self._typecheck(node.else_expr)
+
+        if test_expr_tst.type != Bool:
+            raise TypeCheckerException(f"Test expression does not evaluate to Bool (got '{test_expr_tst.type}')")
+
+        if then_expr_tst.type != else_expr_tst.type:
+            raise TypeCheckerException(f"Types of both branches on if else must be equal (got '{then_expr_tst.type}' and '{else_expr_tst.type}')")
+
+        return IfElseTST(test_expr_tst, then_expr_tst, else_expr_tst)
+
+    
     def _typecheck_IntAST(self, node: IntAST) -> ValueTST:
         return ValueTST(Int, node.val)
 
 
-    def _typecheck_FloatAST(self, node: FloatAST) -> ValueTST:
-        return ValueTST(Float, node.val)
-
-
-    def _typecheck_BlockAST(self, node: BlockAST) -> BlockTST:
-        statements = [self._typecheck(stmt) for stmt in node.statements]
-
-        return BlockTST(statements[-1].type, statements)
-
-
-    def _typecheck_ArrayAST(self, node: ArrayAST) -> ArrayTST:
-        typed_vals = [self._typecheck(val) for val in node.vals]
-        types = list(set(val.type for val in typed_vals))
-
-        if len(types) > 1:
-            raise TypeCheckerException(f"Found multiple types in array: {types}")
-
-        return ArrayTST(Type("Array", [types[0]], [len(typed_vals)]), typed_vals)
+    def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
+        return RangeExprTST(node.start, node.end)
 
 
     def _typecheck_VariableAST(self, node: VariableAST) -> VariableTST:

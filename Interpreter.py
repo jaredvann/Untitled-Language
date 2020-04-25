@@ -19,7 +19,6 @@ from ErrorListener import ErrorListener
 # from typelib import TypeVar
 from TST import *
 from TypeChecker import TypeChecker, TypeCheckerException
-from typeconv import ctype_type_conv
 from Visitor import Visitor
 
 
@@ -177,9 +176,9 @@ class Interpreter():
                 cprint("\nMachine Code:", "magenta", attrs=["bold"])
                 print(target_machine.emit_assembly(llvmmod))
 
-            ret = ctypes.CFUNCTYPE(ctype_type_conv(tst.type))(ee.get_function_address(ast.name))()
+            ret = ctypes.CFUNCTYPE(tst.ret_type.c_type)(ee.get_function_address(ast.name))()
 
-            if tst.type == Null:
+            if tst.ret_type == Null:
                 ret = None
 
             if not silent:
@@ -299,6 +298,24 @@ class Tests(unittest.TestCase):
 if __name__ == "__main__":
     interpreter = Interpreter()
 
-    for codestr in sys.argv[1:]:
-        if not interpreter.err_state:
-            interpreter.evaluate(codestr, debug=1, optimize=1, catch_exceptions=1)
+    if len(sys.argv) == 1:
+        while True:
+            print("\n=> ", end="")
+            codestr = input()
+
+            if codestr == "quit":
+                break
+
+            try:
+                ret = interpreter.evaluate(codestr, silent=1, optimize=1, catch_exceptions=0)
+            except Exception as e:
+                cprint(e, "red")
+            else:
+                cprint(ret, "green", attrs=["bold"])
+
+            if interpreter.err_state:
+                break
+    else:
+        for codestr in sys.argv[1:]:
+            if not interpreter.err_state:
+                interpreter.evaluate(codestr, debug=1, optimize=1, catch_exceptions=1)

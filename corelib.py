@@ -1,20 +1,19 @@
+import ctypes
+
 import llvmlite.ir as ir
 
 from CodeGen import LLVMCodeGenerator
 from Scope import Scope
-from typeconv import ir_type_conv
 from typelib import *
 
-Bool = ConcreteType("Bool")
-Float = ConcreteType("Float")
-Int = ConcreteType("Int")
-Null = ConcreteType("Null")
 
-IntArray = ConcreteType("Array", [Int])
-FloatArray = ConcreteType("Array", [Float])
+Bool = ConcreteType("Bool", ir_type=ir.IntType(1), c_type=ctypes.c_bool)
+Float = ConcreteType("Float", ir_type=ir.DoubleType(), c_type=ctypes.c_double)
+Int = ConcreteType("Int", ir_type=ir.IntType(64), c_type=ctypes.c_int64)
+Null = ConcreteType("Null", ir_type=ir.VoidType(), c_type=ctypes.c_void_p)
 
-zero = ir.Constant(ir.IntType(64), 0)
 
+ZERO = ir.Constant(ir.IntType(64), 0)
 
 
 def _eq_Float(cg: LLVMCodeGenerator, args, arg_types):
@@ -98,7 +97,7 @@ def _index(cg: LLVMCodeGenerator, args, arg_types):
     arr_ptr = cg.builder.alloca(arg_types[0])
     cg.builder.store(args[0], arr_ptr)
 
-    val_ptr = cg.builder.gep(arr_ptr, [zero, args[1]])
+    val_ptr = cg.builder.gep(arr_ptr, [ZERO, args[1]])
     return cg.builder.load(val_ptr)
 
 

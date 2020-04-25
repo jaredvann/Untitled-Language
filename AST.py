@@ -8,6 +8,25 @@ class ASTNode:
         raise NotImplementedError
 
 
+class ArrayAST(ASTNode):
+    def __init__(self, vals) -> None:
+        self.vals = vals
+        self.len = len(vals)
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"ArrayAST({self.len})\n"
+        s += "\n".join(val.dump(indent + 2) for val in self.vals)
+        return s
+
+
+class BlockAST(ASTNode):
+    def __init__(self, statements) -> None:
+        self.statements = statements
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"BlockAST()\n" + "\n".join(val.dump(indent+2) for val in self.statements)
+
+
 class BoolAST(ASTNode):
     def __init__(self, val) -> None:
         self.val = val
@@ -28,44 +47,6 @@ class IfElseAST(ASTNode):
         s += self.then_expr.dump(indent+2) + "\n"
         s += self.else_expr.dump(indent+2)
         return s
-
-
-class VariableAST(ASTNode):
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def dump(self, indent=0) -> str:
-        return " "*indent + f"VariableAST({self.name})"
-
-
-class BlockAST(ASTNode):
-    def __init__(self, statements) -> None:
-        self.statements = statements
-
-    def dump(self, indent=0) -> str:
-        return " "*indent + f"BlockAST()\n" + "\n".join(val.dump(indent+2) for val in self.statements)
-
-
-class ArrayAST(ASTNode):
-    def __init__(self, vals) -> None:
-        self.vals = vals
-        self.len = len(vals)
-
-    def dump(self, indent=0) -> str:
-        s = " "*indent + f"ArrayAST({self.len})\n"
-        s += "\n".join(val.dump(indent + 2) for val in self.vals)
-        return s
-
-
-class IntAST(ASTNode):
-    def __init__(self, val: int) -> None:
-        self.val = int(val)
-
-    def __repr__(self) -> str:
-        return f"IntAST({self.val})"
-
-    def dump(self, indent=0) -> str:
-        return " "*indent + self.__repr__()
 
 
 class FloatAST(ASTNode):
@@ -118,6 +99,26 @@ class FunctionAST(ASTNode):
         s = " "*indent + self.__repr__() + "\n"
         s += self.body.dump(indent + 2)
         return s
+
+
+class IntAST(ASTNode):
+    def __init__(self, val: int) -> None:
+        self.val = int(val)
+
+    def __repr__(self) -> str:
+        return f"IntAST({self.val})"
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + self.__repr__()
+
+
+class VariableAST(ASTNode):
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"VariableAST({self.name})"
+
 
 class VarAssignAST(ASTNode):
     def __init__(self, name: str, value: ASTNode) -> None:

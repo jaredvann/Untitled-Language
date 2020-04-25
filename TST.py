@@ -1,24 +1,35 @@
+import ctypes
 import typing as tp
+
+import llvmlite.ir as ir
+import numpy as np
 
 from typelib import ConcreteType, FunctionType, Type
 
 
-Null = ConcreteType("Null")
+Null = ConcreteType("Null", ir_type=ir.VoidType(), c_type=ctypes.c_void_p)
 
 
 class TSTNode:
-    def __init__(self, type):
-        self.type = type
+    def __init__(self) -> None:
+        self.type = Null
 
-    def dump(self, indent=0):
+    def dump(self, indent=0) -> str:
         raise NotImplementedError
 
 
 class ArrayTST(TSTNode):
-    def __init__(self, type: Type, vals) -> None:
-        self.type = type
+    def __init__(self, valtype: ConcreteType, vals: tp.List[TSTNode]) -> None:
+        super().__init__()
+
+        self.valtype = valtype
         self.vals = vals
         self.len = len(vals)
+
+        ir_type = ir.ArrayType(valtype.ir_type, self.len)
+        c_type = np.ctypeslib.ndpointer(dtype=valtype.c_type, shape=(self.len,))
+
+        self.type = ConcreteType("Array", [valtype], [self.len], ir_type, c_type)
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"ArrayTST({self.type}; {self.len})\n"
@@ -26,12 +37,73 @@ class ArrayTST(TSTNode):
         return s
 
 
-class IfElseTST(TSTNode):
-    def __init__(self, type, test_expr, then_expr, else_expr) -> None:
+class BlockTST(TSTNode):
+    def __init__(self, statements) -> None:
+        super().__init__()
+        
         self.type = type
+        self.statements = statements
+
+        self.type = statements[-1].type
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"BlockTST({self.type})\n" + "\n".join(val.dump(indent+2) for val in self.statements)
+
+
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"ForLoopTST({self.type()})\n"
+        s += self.index_var.dump(indent + 2) + "\n"
+        s += self.iterator.dump(indent + 2) + "\n"
+        s += self.body.dump(indent + 2)
+        return s
+
+
+class FunctionCallTST(TSTNode):
+    def __init__(self, func: FunctionType, args: tp.List[TSTNode]) -> None:
+        super().__init__()
+        
+        self.func = func
+        self.args = args
+
+        self.type = func.ret_type
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"FunctionCallTST({self.type}; {self.func.name})\n"
+        s += "\n".join(arg.dump(indent + 2) for arg in self.args)
+        return s
+
+
+class FunctionTST(TSTNode):
+    def __init__(self, name: str, args: tp.List["VariableTST"], body: TSTNode) -> None:
+        super().__init__()
+        
+        self.name = name
+        self.args = args
+        self.body = body
+        self.ret_type = body.type
+
+    def dump(self, indent=0) -> str:
+        arg_str = ", ".join(f"{arg.name}: {arg.type}" for arg in self.args)
+
+        # s = " "*indent + f"FunctionTST({self.type}; {self.name}({arg_str}) -> {self.type})\n"
+        s = " "*indent + f"FunctionTST({self.name}({arg_str}) -> {self.body.type()})\n"
+        s += self.body.dump(indent + 2)
+        return s
+
+    def is_anonymous(self) -> bool:
+        return self.name.startswith("_anon")
+
+
+class IfElseTST(TSTNode):
+    def __init__(self, test_expr: TSTNode, then_expr: TSTNode, else_expr: TSTNode) -> None:
+        super().__init__()
+        
         self.test_expr = test_expr
         self.then_expr = then_expr
         self.else_expr = else_expr
+
+        self.type = then_expr.type
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"IfElseTST({self.type})\n"
@@ -41,8 +113,24 @@ class IfElseTST(TSTNode):
         return s
 
 
+class RangeExprTST(TSTNode):
+    def __init__(self, start, end) -> None:
+        super().__init__()
+        
+        self.start = start
+        self.end = end
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"RangeExprTST()\n"
+        s += self.start.dump(indent + 2) + "\n"
+        s += self.end.dump(indent + 2)
+        return s
+
+
 class ValueTST(TSTNode):
-    def __init__(self, type: Type, val) -> None:
+    def __init__(self, type: ConcreteType, val: tp.Union[bool, float, int]) -> None:
+        super().__init__()
+        
         self.type = type
         self.val = val
 
@@ -54,7 +142,9 @@ class ValueTST(TSTNode):
 
 
 class VariableTST(TSTNode):
-    def __init__(self, type: Type, name: str) -> None:
+    def __init__(self, type: ConcreteType, name: str) -> None:
+        super().__init__()
+        
         self.type = type
         self.name = name
 
@@ -65,49 +155,10 @@ class VariableTST(TSTNode):
         return " "*indent + str(self)
 
 
-class FunctionCallTST(TSTNode):
-    def __init__(self, type: Type, func: FunctionType, args: tp.List[TSTNode]) -> None:
-        self.type = type
-        self.func = func
-        self.args = args
-
-    def dump(self, indent=0) -> str:
-        s = " "*indent + f"FunctionCallTST({self.type}; {self.func.name})\n"
-        s += "\n".join(arg.dump(indent + 2) for arg in self.args)
-        return s
-
-
-class FunctionTST(TSTNode):
-    def __init__(self, type: Type, name: str, args: tp.List[VariableTST], body: TSTNode) -> None:
-        self.type = type
-        self.name = name
-        self.args = args
-        self.body = body
-
-    def is_anonymous(self) -> bool:
-        return self.name.startswith("_anon")
-
-    def dump(self, indent=0) -> str:
-        arg_str = ", ".join(f"{arg.name}: {arg.type}" for arg in self.args)
-
-        s = " "*indent + f"FunctionTST({self.type}; {self.name}({arg_str}) -> {self.type})\n"
-        s += self.body.dump(indent + 2)
-        return s
-
-
-class BlockTST(TSTNode):
-    def __init__(self, type, statements) -> None:
-        self.type = type
-        self.statements = statements
-
-    def dump(self, indent=0) -> str:
-        return " "*indent + f"MultiTST()\n" + "\n".join(val.dump(indent+2) for val in self.statements)
-
-
-
 class VarAssignTST(TSTNode):
     def __init__(self, name: str, value: TSTNode) -> None:
-        self.type = Null
+        super().__init__()
+
         self.name = name
         self.value = value
 
@@ -119,7 +170,8 @@ class VarAssignTST(TSTNode):
 
 class VarDeclTST(TSTNode):
     def __init__(self, mutable: bool, name: str, value: TSTNode) -> None:
-        self.type = Null
+        super().__init__()
+        
         self.mutable = mutable
         self.name = name
         self.value = value
@@ -132,7 +184,8 @@ class VarDeclTST(TSTNode):
 
 class WhileLoopTST(TSTNode):
     def __init__(self, condition: TSTNode, body: TSTNode) -> None:
-        self.type = Null
+        super().__init__()
+        
         self.condition = condition
         self.body = body
 

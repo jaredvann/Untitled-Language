@@ -1,7 +1,6 @@
 import llvmlite.ir as ir
 
 from TST import *
-from typeconv import ir_type_conv
 from typelib import *
 
 
@@ -44,6 +43,13 @@ class LLVMCodeGenerator(object):
         return ir.Constant.literal_array([self._codegen(v) for v in node.vals])
 
 
+    def _codegen_BlockTST(self, node: BlockTST):
+        for stmt in node.statements:
+            ret = self._codegen(stmt)
+
+        return ret
+
+
     def _codegen_IfElseTST(self, node: IfElseTST):
         # Emit comparison value
         test_val = self._codegen(node.test_expr)
@@ -77,29 +83,18 @@ class LLVMCodeGenerator(object):
         # Emit the merge ('ifcnt') block
         self.builder.function.basic_blocks.append(merge_bb)
         self.builder.position_at_start(merge_bb)
-        phi = self.builder.phi(ir_type_conv(node.type), "iftmp")
+        phi = self.builder.phi(node.type.ir_type, "iftmp")
         phi.add_incoming(then_val, then_bb)
         phi.add_incoming(else_val, else_bb)
         return phi
 
 
-    def _codegen_ValueTST(self, node: ValueTST):
-        return ir.Constant(ir_type_conv(node.type), node.val)
-
-
-    def _codegen_VariableTST(self, node: VariableTST):
-        var, stack = self.func_symbol_table[node.name]
-
-        if stack:
-            return self.builder.load(var, node.name)
-        else:
-            return var
 
 
     def _codegen_FunctionCallTST(self, node: FunctionCallTST):
         name = node.func.name
         args = [self._codegen(arg) for arg in node.args]
-        arg_types = [ir_type_conv(arg.type) for arg in node.args]
+        arg_types = [arg.type.ir_type for arg in node.args]
 
         if node.func.ir_body is not None:
             return node.func.ir_body(self, args, arg_types)
@@ -107,7 +102,7 @@ class LLVMCodeGenerator(object):
         func = self.module.globals.get(name, None)
 
         if func is None:
-            functype = ir.FunctionType(ir_type_conv(node.type), arg_types)
+            functype = ir.FunctionType(node.type.ir_type, arg_types)
             func = ir.Function(self.module, functype, name)
 
         call_args = [self._codegen(arg) for arg in node.args]
@@ -125,7 +120,7 @@ class LLVMCodeGenerator(object):
             func = self.module.globals[name]
         else:
             # Otherwise create a new function
-            ret_type = ir_type_conv(node.type)
+            ret_type = node.ret_type.ir_type
 
             # If an object needs to be returned by pointer:
             #  - Create a global variable with same type
@@ -134,15 +129,15 @@ class LLVMCodeGenerator(object):
             #
             # Notes: probably a better way to do this, may only need restricting 
             # to python interfacing functions
-            if node.type.name == "Array":
-                elem_type = ir_type_conv(node.type.type_generics[0])
-                arr_len = node.type.num_generics[0]
+            if node.ret_type.name == "Array":
+                elem_type = node.ret_type.type_generics[0].ir_type
+                arr_len = node.ret_type.num_generics[0]
 
                 ret_ptr = ir.GlobalVariable(self.module, ir.ArrayType(elem_type, arr_len), "retval")
                 ret_ptr.initializer = ir.Constant.literal_array([ir.Constant(elem_type, 0)] * arr_len)
                 ret_type = ret_type.as_pointer()
 
-            functype = ir.FunctionType(ret_type, [ir_type_conv(arg.type) for arg in node.args])
+            functype = ir.FunctionType(ret_type, [arg.type.ir_type for arg in node.args])
             
             func = ir.Function(self.module, functype, name)
         
@@ -160,27 +155,31 @@ class LLVMCodeGenerator(object):
         # If an object needs to be returned by pointer:
         #  - Store function return values in global
         #  - Return pointer to global
-        if node.type.name == "Array":
+        if node.ret_type.name == "Array":
             self.builder.store(ret_val, ret_ptr)
             self.builder.ret(ret_ptr)
-        elif node.type.name == "Null":
+        elif node.ret_type.name == "Null":
             self.builder.ret_void()
         else:
             self.builder.ret(ret_val)
 
         return func
 
-    
-    def _codegen_BlockTST(self, node: BlockTST):
-        for stmt in node.statements:
-            ret = self._codegen(stmt)
 
-        return ret
+    def _codegen_ValueTST(self, node: ValueTST):
+        return ir.Constant(node.type.ir_type, node.val)
+
+
+    def _codegen_VariableTST(self, node: VariableTST):
+        var, stack = self.func_symbol_table[node.name]
+
+        if stack:
+            return self.builder.load(var, node.name)
+        else:
+            return var
 
 
     def _codegen_VarAssignTST(self, node: VarAssignTST):
-        ir_type = ir_type_conv(node.value.type)
-
         new_val = self._codegen(node.value)
         var_addr, stack = self.func_symbol_table[node.name]
 
@@ -191,15 +190,13 @@ class LLVMCodeGenerator(object):
 
 
     def _codegen_VarDeclTST(self, node: VarDeclTST):
-        ir_type = ir_type_conv(node.value.type)
-
         init_val = self._codegen(node.value)
 
         # Create an alloca for the induction var and store the init value to
         # it. Save and restore location of our builder because
         # _create_entry_block_alloca may modify it (llvmlite issue #44).
         saved_block = self.builder.block
-        var_addr = self._create_entry_block_alloca(node.name, ir_type)
+        var_addr = self._create_entry_block_alloca(node.name, node.value.type.ir_type)
         self.builder.position_at_end(saved_block)
         self.builder.store(init_val, var_addr)
 
@@ -207,7 +204,6 @@ class LLVMCodeGenerator(object):
 
 
     def _codegen_WhileLoopTST(self, node: WhileLoopTST):
-        preheader_bb = self.builder.block
         loop_bb = self.builder.function.append_basic_block("loop")
         after_bb = self.builder.function.append_basic_block("after_loop")
 

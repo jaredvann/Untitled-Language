@@ -1,5 +1,8 @@
 import typing as tp
 
+import llvmlite.ir as ir
+
+
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 
@@ -50,9 +53,13 @@ class ConcreteType(Type):
             self,
             name: str,
             type_generics: tp.List["ConcreteType"] = None,
-            num_generics: tp.List[int] = None
+            num_generics: tp.List[int] = None,
+            ir_type: ir.Type = None,
+            c_type: object = None,
     ) -> None:
         super().__init__(name, type_generics, num_generics)
+        self.ir_type = ir_type
+        self.c_type = c_type
 
     def __repr__(self) -> str:
         if self.type_generics or self.num_generics:
