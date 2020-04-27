@@ -11,14 +11,20 @@ class Scope:
         self._types: tp.List[Type] = []
         self._functions: tp.List[FunctionType] = []
 
-    def add_var(self, var):
+    def add_var(self, var: Var):
         self._vars.append(var)
 
-    def add_type(self, type):
+    def add_type(self, type: Type):
         self._types.append(type)
 
-    def add_function(self, func):
+    def add_function(self, func: FunctionType):
         self._functions.append(func)
+
+    def add_global_var(self, var: Var):
+        if self.parent is None:
+            self.add_var(var)
+        else:
+            self.parent.add_global_var(var)
 
     def find_var(self, name: str) -> tp.Optional[Var]:
         for var in self._vars:
@@ -51,3 +57,23 @@ class Scope:
             functions += self.parent.find_functions(name)
 
         return functions
+
+
+class CodeGenScope:
+    def __init__(self, parent: "CodeGenScope" = None) -> None:
+        self.parent = parent
+
+        self._symbols: tp.Dict[str, object] = {}
+
+    def set_symbol(self, name: str, symbol: object):
+        self._symbols[name] = symbol
+
+
+    def get_symbol(self, name: str) -> tp.Optional[object]:
+        if name in self._symbols:
+            return self._symbols[name]
+
+        if self.parent is not None:
+            return self.parent.get_symbol(name)
+
+        return None

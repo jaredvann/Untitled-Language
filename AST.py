@@ -35,6 +35,14 @@ class BoolAST(ASTNode):
         return " "*indent + f"BoolAST({self.val})"
 
 
+class DerefAST(ASTNode):
+    def __init__(self, val: ASTNode) -> None:
+        self.val = val
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"DerefAST()\n" + self.val.dump(indent+2)
+
+
 class IfElseAST(ASTNode):
     def __init__(self, test_expr, then_expr, else_expr) -> None:
         self.test_expr = test_expr
@@ -76,6 +84,7 @@ class FunctionCallAST(ASTNode):
 
 class FunctionAST(ASTNode):
     _anonymous_function_counter = 0
+    _interface_function_counter = 0
 
     def __init__(self, name, args, body) -> None:
         self.name = name
@@ -83,13 +92,19 @@ class FunctionAST(ASTNode):
         self.body = body
 
     @classmethod
-    def create_anonymous(cls, expr: ASTNode) -> "FunctionAST":
+    def create_anonymous_fn(cls, expr: ASTNode) -> "FunctionAST":
         # Creates an anonymous function and increments the func name each time to avoid collisions
         cls._anonymous_function_counter += 1
         return cls(f"_anon{cls._anonymous_function_counter}", [], expr)
 
+    @classmethod
+    def create_interface_fn(cls, expr: ASTNode) -> "FunctionAST":
+        # Creates an anonymous function and increments the func name each time to avoid collisions
+        cls._interface_function_counter += 1
+        return cls(f"_io{cls._interface_function_counter}", [], expr)
+
     def is_anonymous(self) -> bool:
-        return self.name.startswith("_anon")
+        return self.name.startswith("_anon") or self.name.startswith("_io")
 
     def __repr__(self) -> str:
         arg_str = ", ".join(": ".join(arg) for arg in self.args)
@@ -112,6 +127,18 @@ class IntAST(ASTNode):
         return " "*indent + self.__repr__()
 
 
+class LValAssignAST(ASTNode):
+    def __init__(self, lval: ASTNode, rval: ASTNode) -> None:
+        self.lval = lval
+        self.rval = rval
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"LValAssignAST()\n"
+        s += self.lval.dump(indent + 2) + "\n"
+        s += self.rval.dump(indent + 2)
+        return s
+
+
 class VariableAST(ASTNode):
     def __init__(self, name: str) -> None:
         self.name = name
@@ -132,10 +159,11 @@ class VarAssignAST(ASTNode):
 
 
 class VarDeclAST(ASTNode):
-    def __init__(self, mutable: bool, name: str, value: ASTNode) -> None:
+    def __init__(self, mutable: bool, name: str, value: ASTNode, globalvar=False) -> None:
         self.mutable = mutable
         self.name = name
         self.value = value
+        self.globalvar = globalvar
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"VarDeclAST({'mut ' if self.mutable else ''}{self.name})\n"

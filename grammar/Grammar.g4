@@ -1,8 +1,8 @@
 grammar Grammar;
 
-prog            : stmt (';' stmt)* | funcDecl;
-block           : '{' stmt (';' stmt)* '}';
-stmt            : block | forLoop | whileLoop | varDecl | varAssign | expr;
+prog            : stmt (';' stmt)* ';'? | funcDecl;
+block           : '{' stmt (';' stmt)* ';'? '}';
+stmt            : block | forLoop | whileLoop | varDecl | varAssign | lValIndexAssign | expr;
 
 
 rangeExpr: int_ '..' int_;
@@ -28,6 +28,7 @@ term        : funcCall | array | atom | parens;
 // varDecl         : prefix=('let' | 'mut') NAME (':' NAMEU)? '=' expr;
 varDecl         : prefix=('let' | 'mut') name=NAME '=' value=expr;
 varAssign       : name=NAME '=' value=expr;
+lValIndexAssign : name=NAME '[' index=expr ']' '=' value=expr;
 
 
 funcCall    : name=NAME '(' ( expr (',' expr)* )? ')';
@@ -44,7 +45,7 @@ atom        : 'True' | 'False' | NAME | int_ | float_;
 // arglist     : '(' ( expr (',' expr)* ','? )? ')';
 array       : '[' expr (',' expr)* ','? ']';
 // array       : '[' ( expr (',' expr)* ','? )? ']';
-subscript   : term '[' int_ ']';
+subscript   : pre=term '[' index=expr ']';
 
 int_         : DIGIT+;
 float_       : DIGIT+ DOT DIGIT* | DOT DIGIT+;

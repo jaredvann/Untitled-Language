@@ -8,6 +8,9 @@ import antlr4
 import llvmlite.ir as ir
 import llvmlite.binding as llvm
 import numpy as np
+from pygments import highlight
+from pygments.lexers.asm import LlvmLexer, NasmLexer
+from pygments.formatters import TerminalFormatter
 from termcolor import cprint
 
 from grammar.GrammarLexer import GrammarLexer
@@ -16,7 +19,6 @@ from grammar.GrammarParser import GrammarParser
 from AST import *
 from CodeGen import LLVMCodeGenerator
 from ErrorListener import ErrorListener
-# from typelib import TypeVar
 from TST import *
 from TypeChecker import TypeChecker, TypeCheckerException
 from Visitor import Visitor
@@ -34,6 +36,12 @@ Compilation stages:
 """
 
 
+def print_ir(code: str):
+    print(highlight(code, LlvmLexer(), TerminalFormatter()))
+
+def print_asm(code: str):
+    print(highlight(code, NasmLexer(), TerminalFormatter()))
+
 
 class Interpreter():
     def __init__(self):
@@ -50,17 +58,34 @@ class Interpreter():
         # Stage 4 initialisation
         self.codegen = LLVMCodeGenerator()
 
-        # build_core_functions(self.codegen.module)
-
         # Stage 5 initialisation
         llvm.initialize()
         llvm.initialize_native_target()
         llvm.initialize_native_asmprinter()
 
-        self.target = llvm.Target.from_default_triple()
+        self.target_machine = llvm.Target.from_default_triple().create_target_machine()
+
+        self.jit = llvm.create_mcjit_compiler(llvm.parse_assembly(""), self.target_machine)
 
 
-    def evaluate(self, codestr, debug=False, optimize=False, silent=False, catch_exceptions=False):
+    def evaluate(self, codestr: tp.Union[tp.List[str], str], *args, **kwargs):
+        if isinstance(codestr, str):
+            return self._evaluate(codestr, *args, **kwargs)
+        else:
+            ret_vals = []
+
+            for _codestr in codestr:
+                ret_val = self._evaluate(_codestr, *args, **kwargs)
+
+                if self.err_state:
+                    break
+                
+                ret_vals.append(ret_val)
+
+            return ret_vals
+
+
+    def _evaluate(self, codestr, debug=False, optimize=False, silent=False, catch_exceptions=False):
         if silent:
             debug = False
 
@@ -73,7 +98,6 @@ class Interpreter():
 
         if debug:
             cprint("\n### Stage 1/5: Lexer/Parser ###", "blue", attrs=["bold"])
-
 
         lexer = GrammarLexer(antlr4.InputStream(codestr))
         stream = antlr4.CommonTokenStream(lexer)
@@ -133,14 +157,7 @@ class Interpreter():
 
         if debug:
             cprint("\nUnoptimised LLVM IR:", "magenta", attrs=["bold"])
-            print(str(self.codegen.module))
-
-        # If we're evaluating a definition or extern declaration, don't do
-        # anything else. If we're evaluating an anonymous wrapper for a toplevel
-        # expression, JIT-compile the module and run the function to get its
-        # result.
-        if not (isinstance(tst, FunctionTST) and tst.is_anonymous()):
-            return None
+            print_ir(str(self.codegen.module))
 
 
         ########################################################################
@@ -163,20 +180,20 @@ class Interpreter():
 
             if debug:
                 cprint("\nOptimised LLVM IR:", "magenta", attrs=["bold"])
-                print(str(llvmmod))
+                print_ir(str(llvmmod))
 
-        # Create a MCJIT execution engine to JIT-compile the module. Note that
-        # ee takes ownership of target_machine, so it has to be recreated anew
-        # each time we call create_mcjit_compiler.
-        target_machine = self.target.create_target_machine()
-        with llvm.create_mcjit_compiler(llvmmod, target_machine) as ee:
-            ee.finalize_object()
 
-            if debug:
-                cprint("\nMachine Code:", "magenta", attrs=["bold"])
-                print(target_machine.emit_assembly(llvmmod))
+        self.jit.add_module(llvmmod)
+        self.jit.finalize_object()
+        # self.ee.run_static_constructors()
 
-            ret = ctypes.CFUNCTYPE(tst.ret_type.c_type)(ee.get_function_address(ast.name))()
+        if debug:
+            cprint("\nMachine Code:", "magenta", attrs=["bold"])
+            print_asm(self.target_machine.emit_assembly(llvmmod))
+
+        # Run the top level method and cast the return value into a ctype
+        if tst.name.startswith("_io"):
+            ret = ctypes.CFUNCTYPE(tst.ret_type.c_type)(self.jit.get_function_address(ast.name))()
 
             if tst.ret_type == Null:
                 ret = None
@@ -263,11 +280,13 @@ class Tests(unittest.TestCase):
         self.assertEqual(Interpreter().evaluate("let x = 2; x", silent=1), 2)
         self.assertEqual(Interpreter().evaluate("let x = 2.0; x", silent=1), 2.0)
         self.assertTrue((Interpreter().evaluate("let x = [1,2,3]; x", silent=1) == np.array([1,2,3])).all())
+        self.assertEqual(Interpreter().evaluate("let x = sqrt(9.0); x", silent=1), 3.0)
 
     def test_variable_assignment(self):
         self.assertEqual(Interpreter().evaluate("let x = 2; x = 4; x", silent=1), 4)
         self.assertEqual(Interpreter().evaluate("let x = 2.0; x = 4.0; x", silent=1), 4.0)
         self.assertTrue((Interpreter().evaluate("let x = [1,2,3]; x = [3,2,1]; x", silent=1) == np.array([3,2,1])).all())
+        self.assertEqual(Interpreter().evaluate("let x = 0.0; x = sqrt(9.0); x", silent=1), 3.0)
 
         with self.assertRaises(TypeCheckerException):
             Interpreter().evaluate("let x = 2; x = 4.0", silent=1)
@@ -276,23 +295,42 @@ class Tests(unittest.TestCase):
             Interpreter().evaluate("let x = [1,2]; x = [1,2,3]", silent=1)
 
     def test_func_definition(self):
-        i = Interpreter()
-        i.evaluate("fn double(x: Int){ x * 2 }", silent=1)
+        self.assertEqual(Interpreter().evaluate(["fn ident1(a: Int){ a }", "ident1(2)"], silent=1), [None, 2])
+        self.assertEqual(Interpreter().evaluate(["fn ident2(a: Int){ let b = a; b }", "ident2(2)"], silent=1), [None, 2])
+        # TODO:
+        # self.assertEqual(Interpreter().evaluate(["fn ident2(a: Array<Int;1>){ let b = a; b }", "ident2([2])"], silent=1), [None, np.array([2])])
 
-        self.assertEqual(i.evaluate("double(3)", silent=1), 6)
-        self.assertEqual(i.evaluate("double(double(3))", silent=1), 12)
+        self.assertEqual(Interpreter().evaluate(["fn double(x: Int){ x * 2 }", "double(3)"], silent=1), [None, 6])
+        self.assertEqual(Interpreter().evaluate(["fn double(x: Int){ x * 2 }", "double(double(3))"], silent=1), [None, 12])
+
+        self.assertEqual(Interpreter().evaluate(["fn test(){ 1 }", "test()"], silent=1), [None, 1])
+        self.assertEqual(Interpreter().evaluate(["fn test(){ [1] }", "test()"], silent=1), [None, np.array([1])])
+
+        self.assertEqual(Interpreter().evaluate(["fn test(){ let a = 1; a }", "test()"], silent=1), [None, 1])
+        self.assertEqual(Interpreter().evaluate(["fn test(){ let a = [1]; a }", "test()"], silent=1), [None, np.array([1])])
+        self.assertEqual(Interpreter().evaluate(["fn test(){ let a = [1]; a[0] }", "test()"], silent=1), [None, 1])
 
     def test_array_access(self):
-        self.assertEqual(Interpreter().evaluate("[1,2,3][0]", silent=1), 1)
-        self.assertEqual(Interpreter().evaluate("[1,2,3][1]", silent=1), 2)
-        self.assertEqual(Interpreter().evaluate("[1,2,3][2]", silent=1), 3)
+        self.assertEqual(Interpreter().evaluate("let a = [1,2,3]; a[0]", silent=1), 1)
+        self.assertEqual(Interpreter().evaluate("let a = [1,2,3]; a[1]", silent=1), 2)
+        self.assertEqual(Interpreter().evaluate("let a = [1,2,3]; a[2]", silent=1), 3)
 
-        self.assertEqual(Interpreter().evaluate("[1.0,2.0,3.0][0]", silent=1), 1.0)
-        self.assertEqual(Interpreter().evaluate("[1.0,2.0,3.0][1]", silent=1), 2.0)
-        self.assertEqual(Interpreter().evaluate("[1.0,2.0,3.0][2]", silent=1), 3.0)
+        self.assertEqual(Interpreter().evaluate("let a = [1.0,2.0,3.0]; a[0]", silent=1), 1.0)
+        self.assertEqual(Interpreter().evaluate("let a = [1.0,2.0,3.0]; a[1]", silent=1), 2.0)
+        self.assertEqual(Interpreter().evaluate("let a = [1.0,2.0,3.0]; a[2]", silent=1), 3.0)
+
+    def test_array_element_assignment(self):
+        self.assertTrue((Interpreter().evaluate("let a = [0,0,0]; a[0] = 2; a", silent=1) == np.array([2,0,0])).all())
+        self.assertTrue((Interpreter().evaluate("let a = [0,0,0]; a[1] = 4; a", silent=1) == np.array([0,4,0])).all())
+        self.assertTrue((Interpreter().evaluate("let a = [0,0,0]; a[2] = 6; a", silent=1) == np.array([0,0,6])).all())
+
+        self.assertTrue((Interpreter().evaluate("let a = [0.0,0.0,0.0]; a[0] = 2.0; a", silent=1) == np.array([2.0,0.0,0.0])).all())
+        self.assertTrue((Interpreter().evaluate("let a = [0.0,0.0,0.0]; a[1] = 4.0; a", silent=1) == np.array([0.0,4.0,0.0])).all())
+        self.assertTrue((Interpreter().evaluate("let a = [0.0,0.0,0.0]; a[2] = 6.0; a", silent=1) == np.array([0.0,0.0,6.0])).all())
 
     def test_while_loop_access(self):
-        self.assertEqual(Interpreter().evaluate("let i = 0; while i < 5 {i = i + 1}", silent=1), None)
+        self.assertEqual(Interpreter().evaluate("let i = 0; while i < 5 {i = i + 1}; i", silent=1), 5)
+        self.assertTrue((Interpreter().evaluate("let arr = [0,0,0,0,0]; let i = 0; while i < 5 {arr[i] = i; i = i + 1}; arr", silent=1) == np.array([0,1,2,3,4])).all())
 
 
 if __name__ == "__main__":
@@ -311,11 +349,12 @@ if __name__ == "__main__":
             except Exception as e:
                 cprint(e, "red")
             else:
-                cprint(ret, "green", attrs=["bold"])
+                if ret is not None:
+                    cprint(ret, "green", attrs=["bold"])
 
             if interpreter.err_state:
                 break
     else:
         for codestr in sys.argv[1:]:
             if not interpreter.err_state:
-                interpreter.evaluate(codestr, debug=1, optimize=1, catch_exceptions=1)
+                interpreter.evaluate(codestr, debug=1, optimize=0, catch_exceptions=0)

@@ -4,15 +4,14 @@ import typing as tp
 import llvmlite.ir as ir
 import numpy as np
 
-from typelib import ConcreteType, FunctionType, Type
-
-
-Null = ConcreteType("Null", ir_type=ir.VoidType(), c_type=ctypes.c_void_p)
+from coretypes import *
+from typelib import ConcreteType, FunctionType, RefType, Type
 
 
 class TSTNode:
     def __init__(self) -> None:
         self.type = Null
+        self.is_temporary = True
 
     def dump(self, indent=0) -> str:
         raise NotImplementedError
@@ -30,6 +29,7 @@ class ArrayTST(TSTNode):
         c_type = np.ctypeslib.ndpointer(dtype=valtype.c_type, shape=(self.len,))
 
         self.type = ConcreteType("Array", [valtype], [self.len], ir_type, c_type)
+        # self.is_temporary = True
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"ArrayTST({self.type}; {self.len})\n"
@@ -45,14 +45,36 @@ class BlockTST(TSTNode):
         self.statements = statements
 
         self.type = statements[-1].type
+        self.is_temporary = statements[-1].is_temporary
 
     def dump(self, indent=0) -> str:
         return " "*indent + f"BlockTST({self.type})\n" + "\n".join(val.dump(indent+2) for val in self.statements)
 
 
+class DerefTST(TSTNode):
+    def __init__(self, val: TSTNode) -> None:
+        super().__init__()
+
+        if not isinstance(val.type, RefType):
+            raise Exception
+
+        self.val = val
+        self.type = val.type.type
 
     def dump(self, indent=0) -> str:
-        s = " "*indent + f"ForLoopTST({self.type()})\n"
+        return " "*indent + f"DerefTST({self.type})\n" + self.val.dump(indent+2)
+
+
+class ForLoopTST(TSTNode):
+    def __init__(self, index_var: TSTNode, iterator: TSTNode, body: TSTNode) -> None:
+        super().__init__()
+        
+        self.index_var = index_var
+        self.iterator = iterator
+        self.body = body
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"ForLoopTST({self.type})\n"
         s += self.index_var.dump(indent + 2) + "\n"
         s += self.iterator.dump(indent + 2) + "\n"
         s += self.body.dump(indent + 2)
@@ -87,12 +109,12 @@ class FunctionTST(TSTNode):
         arg_str = ", ".join(f"{arg.name}: {arg.type}" for arg in self.args)
 
         # s = " "*indent + f"FunctionTST({self.type}; {self.name}({arg_str}) -> {self.type})\n"
-        s = " "*indent + f"FunctionTST({self.name}({arg_str}) -> {self.body.type()})\n"
+        s = " "*indent + f"FunctionTST({self.name}({arg_str}) -> {self.body.type})\n"
         s += self.body.dump(indent + 2)
         return s
 
     def is_anonymous(self) -> bool:
-        return self.name.startswith("_anon")
+        return self.name.startswith("_anon") or self.name.startswith("_io")
 
 
 class IfElseTST(TSTNode):
@@ -104,12 +126,27 @@ class IfElseTST(TSTNode):
         self.else_expr = else_expr
 
         self.type = then_expr.type
+        # self.is_temporary = True
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"IfElseTST({self.type})\n"
         s += self.test_expr.dump(indent+2) + "\n"
         s += self.then_expr.dump(indent+2) + "\n"
         s += self.else_expr.dump(indent+2)
+        return s
+
+
+class LValAssignTST(TSTNode):
+    def __init__(self, lval: TSTNode, rval: TSTNode) -> None:
+        super().__init__()
+
+        self.lval = lval
+        self.rval = rval
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"LValAssignTST()\n"
+        s += self.lval.dump(indent + 2) + "\n"
+        s += self.rval.dump(indent + 2)
         return s
 
 
@@ -147,6 +184,7 @@ class VariableTST(TSTNode):
         
         self.type = type
         self.name = name
+        self.is_temporary = False
 
     def __repr__(self) -> str:
         return f"VariableTST({self.type}; {self.name})"
@@ -169,12 +207,13 @@ class VarAssignTST(TSTNode):
 
 
 class VarDeclTST(TSTNode):
-    def __init__(self, mutable: bool, name: str, value: TSTNode) -> None:
+    def __init__(self, mutable: bool, name: str, value: TSTNode, globalvar=False) -> None:
         super().__init__()
         
         self.mutable = mutable
         self.name = name
         self.value = value
+        self.globalvar = globalvar
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"VarDeclTST({'mut ' if self.mutable else ''}{self.name})\n"

@@ -1,3 +1,4 @@
+import copy
 import typing as tp
 
 
@@ -5,7 +6,7 @@ from AST import *
 import corelib
 from corelib import Bool, Float, Int
 from TST import * 
-from Scope import Scope
+from scopes import Scope
 from typelib import *
 from typesystem.map_types import map_types
 
@@ -16,7 +17,7 @@ class TypeCheckerException(Exception): pass
 class TypeChecker:
     def __init__(self, scope: Scope = None) -> None:
         if scope is None:
-            scope = corelib.scope
+            scope = copy.deepcopy(corelib.scope)
 
         self.scope = scope
 
@@ -59,6 +60,10 @@ class TypeChecker:
 
     def _typecheck_BoolAST(self, node: BoolAST) -> ValueTST:
         return ValueTST(Bool, node.val)
+
+    
+    def _typecheck_DerefAST(self, node: DerefAST) -> DerefTST:
+        return DerefTST(self._typecheck(node.val))
 
 
     def _typecheck_FloatAST(self, node: FloatAST) -> ValueTST:
@@ -159,6 +164,20 @@ class TypeChecker:
     def _typecheck_IntAST(self, node: IntAST) -> ValueTST:
         return ValueTST(Int, node.val)
 
+    
+    def _typecheck_LValAssignAST(self, node: LValAssignAST) -> LValAssignTST:
+        lval = self._typecheck(node.lval)
+        rval = self._typecheck(node.rval)
+
+        if isinstance(lval.type, RefType):
+            if lval.type.type != rval.type:
+                raise TypeCheckerException(f"(Dereferenced) Type of assigned value ('{lval.type.type}') does not match type of variable ('{rval.type}')")
+
+        elif lval.type != rval.type:
+            raise TypeCheckerException(f"Type of assigned value ('{lval.type}') does not match type of variable ('{rval.type}')")
+
+        return LValAssignTST(lval, rval)
+
 
     def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
         return RangeExprTST(node.start, node.end)
@@ -201,9 +220,13 @@ class TypeChecker:
         # if scopetype is None:
         #     raise TypeCheckerException(f"Type '{value.type}' not found")
 
-        self.scope.add_var(Var(node.name, value.type))
+        if node.globalvar:
+            self.scope.add_global_var(Var(node.name, value.type))
+        else:
+            self.scope.add_var(Var(node.name, value.type))
+            
 
-        return VarDeclTST(node.mutable, node.name, value)
+        return VarDeclTST(node.mutable, node.name, value, node.globalvar)
 
 
     def _typecheck_WhileLoopAST(self, node: WhileLoopAST) -> WhileLoopTST:

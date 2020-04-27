@@ -1,3 +1,4 @@
+import ctypes
 import typing as tp
 
 import llvmlite.ir as ir
@@ -56,6 +57,7 @@ class ConcreteType(Type):
             num_generics: tp.List[int] = None,
             ir_type: ir.Type = None,
             c_type: object = None,
+            by_ref: bool = True,
     ) -> None:
         super().__init__(name, type_generics, num_generics)
         self.ir_type = ir_type
@@ -79,15 +81,19 @@ class ConcreteType(Type):
     def is_concrete(self) -> bool:
         return True
 
-
-# class ConcreteType(Type):
-#     def __init__(self, name: str, type_generics: tp.List["Type"] = None, num_generics: tp.List[int] = None) -> None:
-#         super().__init__(name, type_generics, num_generics)
+    def to_ref(self) -> "RefType":
+        return RefType(self)
 
 
-# class AbstractType(Type):
-#     def __init__(self, name: str, type_generics: tp.List["Type"] = None, num_generics: tp.List[int] = None) -> None:
-#         super().__init__(name, type_generics, num_generics)
+class RefType(ConcreteType):
+    def __init__(self, type: ConcreteType) -> None:
+        self.name = "Ref"
+        self.type = type
+        self.ir_type = type.ir_type.as_pointer()
+        self.c_type = ctypes.pointer
+
+    def __repr__(self) -> str:
+        return f"Ref<{self.type}>"
 
 
 class TypeVar(Type):

@@ -3,14 +3,9 @@ import ctypes
 import llvmlite.ir as ir
 
 from CodeGen import LLVMCodeGenerator
-from Scope import Scope
+from coretypes import *
+from scopes import Scope
 from typelib import *
-
-
-Bool = ConcreteType("Bool", ir_type=ir.IntType(1), c_type=ctypes.c_bool)
-Float = ConcreteType("Float", ir_type=ir.DoubleType(), c_type=ctypes.c_double)
-Int = ConcreteType("Int", ir_type=ir.IntType(64), c_type=ctypes.c_int64)
-Null = ConcreteType("Null", ir_type=ir.VoidType(), c_type=ctypes.c_void_p)
 
 
 ZERO = ir.Constant(ir.IntType(64), 0)
@@ -94,11 +89,8 @@ def _abs_Float(cg: LLVMCodeGenerator, args, arg_types):
 
 
 def _index(cg: LLVMCodeGenerator, args, arg_types):
-    arr_ptr = cg.builder.alloca(arg_types[0])
-    cg.builder.store(args[0], arr_ptr)
-
-    val_ptr = cg.builder.gep(arr_ptr, [ZERO, args[1]])
-    return cg.builder.load(val_ptr)
+    arr_ptr, index = args
+    return cg.builder.gep(arr_ptr, [ZERO, index])
 
 
 scope = Scope()
@@ -158,8 +150,8 @@ scope.add_function(FunctionType("sin", [Float], Float))
 scope.add_function(FunctionType("cos", [Float], Float))
 scope.add_function(FunctionType("tan", [Float], Float))
 
-scope.add_function(FunctionType("index", [Type("Array", [Int], ['N']), Int], Int, _index))
-scope.add_function(FunctionType("index", [Type("Array", [Float], ['N']), Int], Float, _index))
-
+scope.add_function(FunctionType("index", [Type("Array", [Bool], ['N']), Int], Bool.to_ref(), _index))
+scope.add_function(FunctionType("index", [Type("Array", [Int], ['N']), Int], Int.to_ref(), _index))
+scope.add_function(FunctionType("index", [Type("Array", [Float], ['N']), Int], Float.to_ref(), _index))
 
 # scope.add_function(FunctionType("sum", [Type("Array", [Int], ['N'])], Int))

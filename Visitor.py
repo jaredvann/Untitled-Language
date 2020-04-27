@@ -15,7 +15,7 @@ class Visitor(GrammarVisitor):
     def visitProg(self, ctx: GrammarParser.ProgContext):
         if ctx.stmt():
             body = BlockAST([self.visit(stmt) for stmt in ctx.stmt()])
-            return FunctionAST.create_anonymous(body)
+            return FunctionAST.create_interface_fn(body)
 
         else:
             return self.visit(ctx.funcDecl())
@@ -103,16 +103,26 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#varDecl.
     def visitVarDecl(self, ctx: GrammarParser.VarDeclContext):
+        globalvar = ctx.parentCtx.parentCtx.__class__.__name__ == "ProgContext"
+
         mutable = ctx.prefix.text == "mut"
         name = ctx.name.text
         value = self.visit(ctx.value)
 
-        return VarDeclAST(mutable, name, value)
+        return VarDeclAST(mutable, name, value, globalvar)
 
 
     # Visit a parse tree produced by GrammarParser#varAssign.
     def visitVarAssign(self, ctx: GrammarParser.VarAssignContext):
         return VarAssignAST(ctx.name.text, self.visit(ctx.value))
+
+
+    # Visit a parse tree produced by GrammarParser#lValIndexAssign.
+    def visitLValIndexAssign(self, ctx: GrammarParser.LValIndexAssignContext):
+        lval = FunctionCallAST("index", [VariableAST(ctx.name.text), self.visit(ctx.index)])
+        rval = self.visit(ctx.value)
+
+        return LValAssignAST(lval, rval)
 
 
     # Visit a parse tree produced by GrammarParser#funcCall.
@@ -172,4 +182,4 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#subscript.
     def visitSubscript(self, ctx: GrammarParser.SubscriptContext):
-        return FunctionCallAST(f"index", [self.visit(ctx.term()), IntAST(int(ctx.int_().getText()))])
+        return DerefAST(FunctionCallAST("index", [self.visit(ctx.pre), self.visit(ctx.index)]))

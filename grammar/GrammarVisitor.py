@@ -94,6 +94,11 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#lValIndexAssign.
+    def visitLValIndexAssign(self, ctx:GrammarParser.LValIndexAssignContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#funcCall.
     def visitFuncCall(self, ctx:GrammarParser.FuncCallContext):
         return self.visitChildren(ctx)
