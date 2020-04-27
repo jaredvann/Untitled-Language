@@ -114,15 +114,13 @@ class Visitor(GrammarVisitor):
 
     # Visit a parse tree produced by GrammarParser#varAssign.
     def visitVarAssign(self, ctx: GrammarParser.VarAssignContext):
-        return VarAssignAST(ctx.name.text, self.visit(ctx.value))
+        var = VariableAST(ctx.name.text)
 
+        for subscript in ctx.expr():
+            if subscript is not ctx.value:
+                var = FunctionCallAST("index", [var, self.visit(subscript)])
 
-    # Visit a parse tree produced by GrammarParser#lValIndexAssign.
-    def visitLValIndexAssign(self, ctx: GrammarParser.LValIndexAssignContext):
-        lval = FunctionCallAST("index", [VariableAST(ctx.name.text), self.visit(ctx.index)])
-        rval = self.visit(ctx.value)
-
-        return LValAssignAST(lval, rval)
+        return VarAssignAST(var, self.visit(ctx.value))
 
 
     # Visit a parse tree produced by GrammarParser#funcCall.

@@ -164,20 +164,6 @@ class TypeChecker:
     def _typecheck_IntAST(self, node: IntAST) -> ValueTST:
         return ValueTST(Int, node.val)
 
-    
-    def _typecheck_LValAssignAST(self, node: LValAssignAST) -> LValAssignTST:
-        lval = self._typecheck(node.lval)
-        rval = self._typecheck(node.rval)
-
-        if isinstance(lval.type, RefType):
-            if lval.type.type != rval.type:
-                raise TypeCheckerException(f"(Dereferenced) Type of assigned value ('{lval.type.type}') does not match type of variable ('{rval.type}')")
-
-        elif lval.type != rval.type:
-            raise TypeCheckerException(f"Type of assigned value ('{lval.type}') does not match type of variable ('{rval.type}')")
-
-        return LValAssignTST(lval, rval)
-
 
     def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
         return RangeExprTST(node.start, node.end)
@@ -195,19 +181,17 @@ class TypeChecker:
 
 
     def _typecheck_VarAssignAST(self, node: VarAssignAST) -> VarAssignTST:
-        var = self.scope.find_var(node.name)
+        lvalue = self._typecheck(node.lvalue)
+        rvalue = self._typecheck(node.rvalue)
 
-        if var is None:
-            raise TypeCheckerException(f"Variable '{node.name}' is not defined")
+        if isinstance(lvalue.type, RefType):
+            if lvalue.type.type != rvalue.type:
+                raise TypeCheckerException(f"(Dereferenced) Type of assigned value ('{lvalue.type.type}') does not match type of variable ('{rvalue.type}')")
 
-        # TODO: add mutability check
+        elif lvalue.type != rvalue.type:
+            raise TypeCheckerException(f"Type of assigned value ('{lvalue.type}') does not match type of variable ('{rvalue.type}')")
 
-        value = self._typecheck(node.value)
-
-        if value.type != var.type:
-            raise TypeCheckerException(f"Type of assigned value ('{value.type}') does not match type of variable ('{var.type}')")
-
-        return VarAssignTST(node.name, value)
+        return VarAssignTST(lvalue, rvalue)
 
 
     def _typecheck_VarDeclAST(self, node: VarDeclAST) -> VarDeclTST:

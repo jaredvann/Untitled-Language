@@ -68,7 +68,7 @@ class LLVMCodeGenerator:
         return self.builder.load(self._codegen(node.val))
 
 
-    def _codegen_FunctionCallTST(self, node: FunctionCallTST):
+    def _codegen_FunctionCallTST(self, node: FunctionCallTST, lvalue=False):
         name = node.func.name
 
         args = [self._codegen(arg) for arg in node.args]
@@ -192,18 +192,11 @@ class LLVMCodeGenerator:
         return phi
 
 
-    def _codegen_LValAssignTST(self, node: LValAssignTST):
-        var_addr = self._codegen(node.lval)
-        new_val = self._codegen(node.rval)
-
-        self.builder.store(new_val, var_addr)
-
-
     def _codegen_ValueTST(self, node: ValueTST):
         return ir.Constant(node.type.ir_type, node.val)
 
 
-    def _codegen_VariableTST(self, node: VariableTST):
+    def _codegen_VariableTST(self, node: VariableTST, lvalue=False):
         # Check in the module scope for the variable
         val = self.scope.get_symbol(node.name)
 
@@ -213,36 +206,17 @@ class LLVMCodeGenerator:
 
         # If it isn't in the global scope the type checker has failed us
 
-        if node.type in VAL_TYPES:
-            # Function arguments are passed as pointers
-            if isinstance(val, ir.Argument):
-                return val
-            # Otherwise load the value
-            else:
-                return self.builder.load(val, node.name)
-        
+        # Under this specific condition (normal access) we want to return the value rather than the location
+        if node.type in VAL_TYPES and not (isinstance(val, ir.Argument) or lvalue):
+            return self.builder.load(val, node.name)
         else:
             return val
 
 
     def _codegen_VarAssignTST(self, node: VarAssignTST):
-        # Check in the module scope for the variable
-        var_addr = self.scope.get_symbol(node.name)
+        var_addr = self._codegen(node.lvalue, lvalue=True)
+        new_val = self._codegen(node.rvalue)
 
-        # If it isn't in the module scope check in the global scope
-        if var_addr is None:
-            var_addr = self.module.get_global(f"global__{node.name}")
-
-        # If it isn't in the global scope the type checker has failed us
-
-        if node.value.type in VAL_TYPES or node.value.is_temporary:
-            # Get var by value
-            new_val = self._codegen(node.value)
-        else:
-            # Get var by reference and then deref
-            new_val_addr = self._codegen(node.value)
-            new_val = self.builder.load(new_val_addr)
-        
         self.builder.store(new_val, var_addr)
 
 

@@ -127,17 +127,6 @@ class IntAST(ASTNode):
         return " "*indent + self.__repr__()
 
 
-class LValAssignAST(ASTNode):
-    def __init__(self, lval: ASTNode, rval: ASTNode) -> None:
-        self.lval = lval
-        self.rval = rval
-
-    def dump(self, indent=0) -> str:
-        s = " "*indent + f"LValAssignAST()\n"
-        s += self.lval.dump(indent + 2) + "\n"
-        s += self.rval.dump(indent + 2)
-        return s
-
 
 class VariableAST(ASTNode):
     def __init__(self, name: str) -> None:
@@ -148,13 +137,14 @@ class VariableAST(ASTNode):
 
 
 class VarAssignAST(ASTNode):
-    def __init__(self, name: str, value: ASTNode) -> None:
-        self.name = name
-        self.value = value
+    def __init__(self, lvalue: ASTNode, rvalue: ASTNode) -> None:
+        self.lvalue = lvalue
+        self.rvalue = rvalue
 
     def dump(self, indent=0) -> str:
-        s = " "*indent + f"VarAssignAST({self.name})\n"
-        s += self.value.dump(indent + 2)
+        s = " "*indent + f"VarAssignAST()\n"
+        s += self.lvalue.dump(indent + 2) + "\n"
+        s += self.rvalue.dump(indent + 2)
         return s
 
 

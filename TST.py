@@ -136,20 +136,6 @@ class IfElseTST(TSTNode):
         return s
 
 
-class LValAssignTST(TSTNode):
-    def __init__(self, lval: TSTNode, rval: TSTNode) -> None:
-        super().__init__()
-
-        self.lval = lval
-        self.rval = rval
-
-    def dump(self, indent=0) -> str:
-        s = " "*indent + f"LValAssignTST()\n"
-        s += self.lval.dump(indent + 2) + "\n"
-        s += self.rval.dump(indent + 2)
-        return s
-
-
 class RangeExprTST(TSTNode):
     def __init__(self, start, end) -> None:
         super().__init__()
@@ -194,15 +180,16 @@ class VariableTST(TSTNode):
 
 
 class VarAssignTST(TSTNode):
-    def __init__(self, name: str, value: TSTNode) -> None:
+    def __init__(self, lvalue: TSTNode, rvalue: TSTNode) -> None:
         super().__init__()
 
-        self.name = name
-        self.value = value
+        self.lvalue = lvalue
+        self.rvalue = rvalue
 
     def dump(self, indent=0) -> str:
-        s = " "*indent + f"VarAssignTST({self.name})\n"
-        s += self.value.dump(indent + 2)
+        s = " "*indent + f"VarAssignTST()\n"
+        s += self.lvalue.dump(indent + 2) + "\n"
+        s += self.rvalue.dump(indent + 2)
         return s
 
 

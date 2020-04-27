@@ -161,15 +161,6 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by GrammarParser#lValIndexAssign.
-    def enterLValIndexAssign(self, ctx:GrammarParser.LValIndexAssignContext):
-        pass
-
-    # Exit a parse tree produced by GrammarParser#lValIndexAssign.
-    def exitLValIndexAssign(self, ctx:GrammarParser.LValIndexAssignContext):
-        pass
-
-
     # Enter a parse tree produced by GrammarParser#funcCall.
     def enterFuncCall(self, ctx:GrammarParser.FuncCallContext):
         pass
