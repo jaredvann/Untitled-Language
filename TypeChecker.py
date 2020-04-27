@@ -38,6 +38,36 @@ class TypeChecker:
         return True
 
 
+    def _find_type(self, type_: TypeAST) -> Type:
+        # Search for matching concrete types first
+        scopetype = self.scope.find_type(type_)
+
+        if scopetype:
+            return scopetype
+
+        # If no concrete type found, search for a matching abstract type
+        abstract_type = self.scope.find_abstract_type(type_)
+
+        if abstract_type is None:
+            raise TypeCheckerException(f"Could not find type '{type_}'")
+
+        type_.type_generics = [(self._typecheck(tg) if isinstance(tg, TypeAST) else tg) for tg in type_.type_generics]
+
+        mapping = map_types(type_, abstract_type)
+
+        if mapping == True:
+            raise NotImplementedError("Did not expect true!")
+        elif mapping == False:
+            raise TypeCheckerException(f"Found abstract type '{abstract_type}' but could not map from '{type_}'")
+
+        type_ = abstract_type.make_concrete(type_.type_generics, type_.num_generics)
+
+        self.scope.add_type(type_)
+
+        return type_
+
+
+
     def _typecheck(self, node: ASTNode) -> TSTNode:
         method = "_typecheck_" + node.__class__.__name__
         return getattr(self, method)(node)
@@ -70,50 +100,46 @@ class TypeChecker:
         return ValueTST(Float, node.val)
 
 
-    def _typecheck_ForLoopAST(self, node: ForLoopAST) -> ForLoopTST:
-        iterator = self._typecheck(node.iterator)
+    # def _typecheck_ForLoopAST(self, node: ForLoopAST) -> ForLoopTST:
+    #     iterator = self._typecheck(node.iterator)
 
-        self.scope = Scope(self.scope)
+    #     self.scope = Scope(self.scope)
 
-        index_var = VariableTST(Int, node.index_var.name)
-        index_var_type = Var(node.index_var.name, Int)
-        self.scope.add_var(index_var_type)
+    #     index_var = VariableTST(Int, node.index_var.name)
+    #     index_var_type = Var(node.index_var.name, Int)
+    #     self.scope.add_var(index_var_type)
 
-        body = self._typecheck(node.body)
+    #     body = self._typecheck(node.body)
 
-        self.scope = self.scope.parent
+    #     self.scope = self.scope.parent
 
-        return ForLoopTST(body.type, index_var, iterator, body)
+    #     return ForLoopTST(body.type, index_var, iterator, body)
 
 
     def _typecheck_FunctionAST(self, node: FunctionAST) -> FunctionTST:
         self.scope = Scope(self.scope)
-
-        name = node.name
         
         args = []
         arg_types = []
 
-        for arg_name, arg_type_name in node.args:
-            arg_type = self.scope.find_type(arg_type_name)
+        for arg_name, arg_type in node.args:
+            type_ = self._typecheck(arg_type)
 
-            if arg_type is None:
-                raise TypeCheckerException(f"Could not find type '{arg_type_name}' used in declaration of function '{node.name}'")
+            args.append(VariableTST(type_, arg_name))
+            arg_types.append(type_)
+            self.scope.add_var(Var(arg_name, type_))
 
-            args.append(VariableTST(arg_type, arg_name))
-            arg_types.append(arg_type)
-            self.scope.add_var(Var(arg_name, arg_type))
 
         body_tst = self._typecheck(node.body)
         ret_type = body_tst.type
 
         self.scope = self.scope.parent
 
-        fn = FunctionType(name, arg_types, ret_type)
+        fn = FunctionType(node.name, arg_types, ret_type)
 
         self.scope.add_function(fn)
 
-        return FunctionTST(name, args, body_tst)
+        return FunctionTST(node.name, args, body_tst)
 
 
     def _typecheck_FunctionCallAST(self, node: FunctionAST) -> Type:
@@ -165,8 +191,13 @@ class TypeChecker:
         return ValueTST(Int, node.val)
 
 
-    def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
-        return RangeExprTST(node.start, node.end)
+    # def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
+    #     return RangeExprTST(node.start, node.end)
+
+
+    def _typecheck_TypeAST(self, node: TypeAST) -> Type:
+        return self._find_type(node)
+
 
 
     def _typecheck_VariableAST(self, node: VariableAST) -> VariableTST:
@@ -199,10 +230,8 @@ class TypeChecker:
             raise TypeCheckerException(f"Variable '{node.name}' already defined")
 
         value = self._typecheck(node.value)
-        scopetype = self.scope.find_type(value.type)
+        value.type = self._find_type(value.type)
 
-        # if scopetype is None:
-        #     raise TypeCheckerException(f"Type '{value.type}' not found")
 
         if node.globalvar:
             self.scope.add_global_var(Var(node.name, value.type))
@@ -211,6 +240,7 @@ class TypeChecker:
             
 
         return VarDeclTST(node.mutable, node.name, value, node.globalvar)
+
 
 
     def _typecheck_WhileLoopAST(self, node: WhileLoopAST) -> WhileLoopTST:

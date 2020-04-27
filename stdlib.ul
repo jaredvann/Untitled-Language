@@ -1,0 +1,19 @@
+fn double(x: Int) {
+    x * 2
+}
+#
+fn max(a: Int, b: Int) {
+    a if a > b else b
+}
+#
+fn min(a: Int, b: Int) {
+    a if a < b else b
+}
+#
+fn max(a: Float, b: Float) {
+    a if a > b else b
+}
+#
+fn min(a: Float, b: Float) {
+    a if a < b else b
+}

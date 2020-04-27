@@ -2,7 +2,7 @@ import copy
 import typing as tp
 import unittest
 
-from typelib import ConcreteType, Type, TypeVar
+from typelib import AbstractType, Type, TypeVar
 
 
 def relabel_type(type: Type, symbol_table: dict = None, prefix: str = "") -> Type:
@@ -44,7 +44,7 @@ def relabel_type(type: Type, symbol_table: dict = None, prefix: str = "") -> Typ
 
 class Tests(unittest.TestCase):
     def test(self):
-        Int = ConcreteType("Int")
+        Int = Type("Int")
 
         # Basic concrete type - no changes
         self.assertEqual(relabel_type(Int), Int)

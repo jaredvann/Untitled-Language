@@ -5,7 +5,7 @@ import llvmlite.ir as ir
 import numpy as np
 
 from coretypes import *
-from typelib import ConcreteType, FunctionType, RefType, Type
+from typelib import AbstractType, FunctionType, RefType, Type
 
 
 class TSTNode:
@@ -18,18 +18,14 @@ class TSTNode:
 
 
 class ArrayTST(TSTNode):
-    def __init__(self, valtype: ConcreteType, vals: tp.List[TSTNode]) -> None:
+    def __init__(self, valtype: Type, vals: tp.List[TSTNode]) -> None:
         super().__init__()
 
         self.valtype = valtype
         self.vals = vals
         self.len = len(vals)
 
-        ir_type = ir.ArrayType(valtype.ir_type, self.len)
-        c_type = np.ctypeslib.ndpointer(dtype=valtype.c_type, shape=(self.len,))
-
-        self.type = ConcreteType("Array", [valtype], [self.len], ir_type, c_type)
-        # self.is_temporary = True
+        self.type = Array.make_concrete([self.valtype], [self.len])
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"ArrayTST({self.type}; {self.len})\n"
@@ -104,11 +100,11 @@ class FunctionTST(TSTNode):
         self.args = args
         self.body = body
         self.ret_type = body.type
+        self.func = FunctionType(name, [arg.type for arg in args], body.type)
 
     def dump(self, indent=0) -> str:
         arg_str = ", ".join(f"{arg.name}: {arg.type}" for arg in self.args)
 
-        # s = " "*indent + f"FunctionTST({self.type}; {self.name}({arg_str}) -> {self.type})\n"
         s = " "*indent + f"FunctionTST({self.name}({arg_str}) -> {self.body.type})\n"
         s += self.body.dump(indent + 2)
         return s
@@ -126,7 +122,6 @@ class IfElseTST(TSTNode):
         self.else_expr = else_expr
 
         self.type = then_expr.type
-        # self.is_temporary = True
 
     def dump(self, indent=0) -> str:
         s = " "*indent + f"IfElseTST({self.type})\n"
@@ -151,7 +146,7 @@ class RangeExprTST(TSTNode):
 
 
 class ValueTST(TSTNode):
-    def __init__(self, type: ConcreteType, val: tp.Union[bool, float, int]) -> None:
+    def __init__(self, type: Type, val: tp.Union[bool, float, int]) -> None:
         super().__init__()
         
         self.type = type
@@ -165,7 +160,7 @@ class ValueTST(TSTNode):
 
 
 class VariableTST(TSTNode):
-    def __init__(self, type: ConcreteType, name: str) -> None:
+    def __init__(self, type: Type, name: str) -> None:
         super().__init__()
         
         self.type = type

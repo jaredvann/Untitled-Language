@@ -95,6 +95,7 @@ def _index(cg: LLVMCodeGenerator, args, arg_types):
 
 scope = Scope()
 
+scope.add_type(Array)
 scope.add_type(Bool)
 scope.add_type(Float)
 scope.add_type(Int)
@@ -135,23 +136,25 @@ scope.add_function(FunctionType("/", [Int, Int], Int, _div_Int))
 scope.add_function(FunctionType("%", [Int, Int], Int, _rem_Int))
 
 # Math Functions
-scope.add_function(FunctionType("abs", [Float], Float, _abs_Float))
-scope.add_function(FunctionType("floor", [Float], Float))
-scope.add_function(FunctionType("ceil", [Float], Float))
-scope.add_function(FunctionType("round", [Float], Float))
+scope.add_function(FunctionType("abs", [Float], Float, _abs_Float, no_mangle=True))
+scope.add_function(FunctionType("floor", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("ceil", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("round", [Float], Float, no_mangle=True))
 
-scope.add_function(FunctionType("sqrt", [Float], Float))
-scope.add_function(FunctionType("exp", [Float], Float))
-scope.add_function(FunctionType("log", [Float], Float))
-scope.add_function(FunctionType("log10", [Float], Float))
-scope.add_function(FunctionType("log2", [Float], Float))
+scope.add_function(FunctionType("sqrt", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("exp", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("log", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("log10", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("log2", [Float], Float, no_mangle=True))
 
-scope.add_function(FunctionType("sin", [Float], Float))
-scope.add_function(FunctionType("cos", [Float], Float))
-scope.add_function(FunctionType("tan", [Float], Float))
+scope.add_function(FunctionType("sin", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("cos", [Float], Float, no_mangle=True))
+scope.add_function(FunctionType("tan", [Float], Float, no_mangle=True))
 
 scope.add_function(FunctionType("index", [Type("Array", [Bool], ['N']), Int], Bool.to_ref(), _index))
 scope.add_function(FunctionType("index", [Type("Array", [Int], ['N']), Int], Int.to_ref(), _index))
 scope.add_function(FunctionType("index", [Type("Array", [Float], ['N']), Int], Float.to_ref(), _index))
+
+scope.add_function(FunctionType("putchar", [Int], Int, no_mangle=True))
 
 # scope.add_function(FunctionType("sum", [Type("Array", [Int], ['N'])], Int))

@@ -67,6 +67,12 @@ class Interpreter():
 
         self.jit = llvm.create_mcjit_compiler(llvm.parse_assembly(""), self.target_machine)
 
+        with open("stdlib.ul", "r") as f:
+            code = f.read().replace("\n", "").split("#")
+
+            for fn in code:
+                self._evaluate(fn, silent=1)
+
 
     def evaluate(self, codestr: tp.Union[tp.List[str], str], *args, **kwargs):
         if isinstance(codestr, str):
@@ -193,7 +199,7 @@ class Interpreter():
 
         # Run the top level method and cast the return value into a ctype
         if tst.name.startswith("_io"):
-            ret = ctypes.CFUNCTYPE(tst.ret_type.c_type)(self.jit.get_function_address(ast.name))()
+            ret = ctypes.CFUNCTYPE(tst.ret_type.c_type)(self.jit.get_function_address(tst.func.ir_signature))()
 
             if tst.ret_type == Null:
                 ret = None
@@ -206,75 +212,82 @@ class Interpreter():
 
 
 class Tests(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Use this for statements that don't affect interpreter state to avoid
+        # initialising std lib each time
+        self.it = Interpreter()
+
     def test_return_types(self):
         # Bools
-        self.assertEqual(Interpreter().evaluate("True", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("False", silent=1), False)
+        self.assertEqual(self.it.evaluate("True", silent=1), True)
+        self.assertEqual(self.it.evaluate("False", silent=1), False)
         # Ints
-        self.assertEqual(Interpreter().evaluate("1", silent=1), 1)
+        self.assertEqual(self.it.evaluate("1", silent=1), 1)
         # Floats
-        self.assertEqual(Interpreter().evaluate("1.0", silent=1), 1.0)
+        self.assertEqual(self.it.evaluate("1.0", silent=1), 1.0)
         # Arrays
-        self.assertTrue((Interpreter().evaluate("[1,2,3]", silent=1) == np.array([1,2,3])).all())
-        self.assertTrue((Interpreter().evaluate("[1.0,2.0,3.0]", silent=1) == np.array([1.0,2.0,3.0])).all())
+        self.assertTrue((self.it.evaluate("[1,2,3]", silent=1) == np.array([1,2,3])).all())
+        self.assertTrue((self.it.evaluate("[1.0,2.0,3.0]", silent=1) == np.array([1.0,2.0,3.0])).all())
 
     def test_bool_equalities(self):
-        self.assertEqual(Interpreter().evaluate("True == True", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("True == False", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("True != True", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("True != False", silent=1), True)
+        self.assertEqual(self.it.evaluate("True == True", silent=1), True)
+        self.assertEqual(self.it.evaluate("True == False", silent=1), False)
+        self.assertEqual(self.it.evaluate("True != True", silent=1), False)
+        self.assertEqual(self.it.evaluate("True != False", silent=1), True)
 
     def test_float_equalities(self):
-        self.assertEqual(Interpreter().evaluate("1.0 == 1.0", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1.0 == 2.0", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1.0 != 1.0", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1.0 != 2.0", silent=1), True)
+        self.assertEqual(self.it.evaluate("1.0 == 1.0", silent=1), True)
+        self.assertEqual(self.it.evaluate("1.0 == 2.0", silent=1), False)
+        self.assertEqual(self.it.evaluate("1.0 != 1.0", silent=1), False)
+        self.assertEqual(self.it.evaluate("1.0 != 2.0", silent=1), True)
 
     def test_int_equalities(self):
-        self.assertEqual(Interpreter().evaluate("1 == 1", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1 == 2", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1 != 1", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1 != 2", silent=1), True)
+        self.assertEqual(self.it.evaluate("1 == 1", silent=1), True)
+        self.assertEqual(self.it.evaluate("1 == 2", silent=1), False)
+        self.assertEqual(self.it.evaluate("1 != 1", silent=1), False)
+        self.assertEqual(self.it.evaluate("1 != 2", silent=1), True)
 
     def test_float_comparisons(self):
-        self.assertEqual(Interpreter().evaluate("1.0 < 2.0", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1.0 > 2.0", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1.0 <= 2.0", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1.0 >= 2.0", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1.0 <= 1.0", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1.0 >= 1.0", silent=1), True)
+        self.assertEqual(self.it.evaluate("1.0 < 2.0", silent=1), True)
+        self.assertEqual(self.it.evaluate("1.0 > 2.0", silent=1), False)
+        self.assertEqual(self.it.evaluate("1.0 <= 2.0", silent=1), True)
+        self.assertEqual(self.it.evaluate("1.0 >= 2.0", silent=1), False)
+        self.assertEqual(self.it.evaluate("1.0 <= 1.0", silent=1), True)
+        self.assertEqual(self.it.evaluate("1.0 >= 1.0", silent=1), True)
 
     def test_int_comparisons(self):
-        self.assertEqual(Interpreter().evaluate("1 < 2", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1 > 2", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1 <= 2", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1 >= 2", silent=1), False)
-        self.assertEqual(Interpreter().evaluate("1 <= 1", silent=1), True)
-        self.assertEqual(Interpreter().evaluate("1 >= 1", silent=1), True)
+        self.assertEqual(self.it.evaluate("1 < 2", silent=1), True)
+        self.assertEqual(self.it.evaluate("1 > 2", silent=1), False)
+        self.assertEqual(self.it.evaluate("1 <= 2", silent=1), True)
+        self.assertEqual(self.it.evaluate("1 >= 2", silent=1), False)
+        self.assertEqual(self.it.evaluate("1 <= 1", silent=1), True)
+        self.assertEqual(self.it.evaluate("1 >= 1", silent=1), True)
 
     def test_if_else_expr(self):
-        self.assertEqual(Interpreter().evaluate("1 if True else 0", silent=1), 1)
-        self.assertEqual(Interpreter().evaluate("1 if False else 0", silent=1), 0)
+        self.assertEqual(self.it.evaluate("1 if True else 0", silent=1), 1)
+        self.assertEqual(self.it.evaluate("1 if False else 0", silent=1), 0)
 
-        self.assertEqual(Interpreter().evaluate("5 if 1 > 2 else 2", silent=1), 2)
-        self.assertEqual(Interpreter().evaluate("[0] if True else [1]", silent=1), [0])
+        self.assertEqual(self.it.evaluate("5 if 1 > 2 else 2", silent=1), 2)
+        self.assertEqual(self.it.evaluate("[0] if True else [1]", silent=1), [0])
 
     def test_int_math(self):
-        self.assertEqual(Interpreter().evaluate("3 + 2", silent=1), 5)
-        self.assertEqual(Interpreter().evaluate("3 - 2", silent=1), 1)
-        self.assertEqual(Interpreter().evaluate("3 * 2", silent=1), 6)
-        self.assertEqual(Interpreter().evaluate("3 / 2", silent=1), 1)
-        self.assertEqual(Interpreter().evaluate("3 % 2", silent=1), 1)
+        self.assertEqual(self.it.evaluate("3 + 2", silent=1), 5)
+        self.assertEqual(self.it.evaluate("3 - 2", silent=1), 1)
+        self.assertEqual(self.it.evaluate("3 * 2", silent=1), 6)
+        self.assertEqual(self.it.evaluate("3 / 2", silent=1), 1)
+        self.assertEqual(self.it.evaluate("3 % 2", silent=1), 1)
 
     def test_float_math(self):
-        self.assertEqual(Interpreter().evaluate("3.0 + 2.0", silent=1), 5.0)
-        self.assertEqual(Interpreter().evaluate("3.0 - 2.0", silent=1), 1.0)
-        self.assertEqual(Interpreter().evaluate("3.0 * 2.0", silent=1), 6.0)
-        self.assertEqual(Interpreter().evaluate("3.0 / 2.0", silent=1), 1.5)
-        self.assertEqual(Interpreter().evaluate("3.0 % 2.0", silent=1), 1.0)
+        self.assertEqual(self.it.evaluate("3.0 + 2.0", silent=1), 5.0)
+        self.assertEqual(self.it.evaluate("3.0 - 2.0", silent=1), 1.0)
+        self.assertEqual(self.it.evaluate("3.0 * 2.0", silent=1), 6.0)
+        self.assertEqual(self.it.evaluate("3.0 / 2.0", silent=1), 1.5)
+        self.assertEqual(self.it.evaluate("3.0 % 2.0", silent=1), 1.0)
 
     def test_math_methods(self):
-        self.assertEqual(Interpreter().evaluate("sqrt(9.0)", silent=1), 3.0)
+        self.assertEqual(self.it.evaluate("sqrt(9.0)", silent=1), 3.0)
 
     def test_variable_declaration(self):
         self.assertEqual(Interpreter().evaluate("let x = 2; x", silent=1), 2)
@@ -295,10 +308,10 @@ class Tests(unittest.TestCase):
             Interpreter().evaluate("let x = [1,2]; x = [1,2,3]", silent=1)
 
     def test_func_definition(self):
-        self.assertEqual(Interpreter().evaluate(["fn ident1(a: Int){ a }", "ident1(2)"], silent=1), [None, 2])
-        self.assertEqual(Interpreter().evaluate(["fn ident2(a: Int){ let b = a; b }", "ident2(2)"], silent=1), [None, 2])
-        # TODO:
-        # self.assertEqual(Interpreter().evaluate(["fn ident2(a: Array<Int;1>){ let b = a; b }", "ident2([2])"], silent=1), [None, np.array([2])])
+        self.assertEqual(Interpreter().evaluate(["fn ident(a: Int){ a }", "ident(2)"], silent=1), [None, 2])
+        self.assertEqual(Interpreter().evaluate(["fn ident(a: Int){ let b = a; b }", "ident(2)"], silent=1), [None, 2])
+        self.assertEqual(Interpreter().evaluate(["fn ident(a: Array<Int;1>){ a }", "ident([2])"], silent=1), [None, np.array([2])])
+        self.assertEqual(Interpreter().evaluate(["fn ident(a: Array<Int;1>){ let b = a; b }", "ident([2])"], silent=1), [None, np.array([2])])
 
         self.assertEqual(Interpreter().evaluate(["fn double(x: Int){ x * 2 }", "double(3)"], silent=1), [None, 6])
         self.assertEqual(Interpreter().evaluate(["fn double(x: Int){ x * 2 }", "double(double(3))"], silent=1), [None, 12])
@@ -331,6 +344,12 @@ class Tests(unittest.TestCase):
     def test_while_loop_access(self):
         self.assertEqual(Interpreter().evaluate("let i = 0; while i < 5 {i = i + 1}; i", silent=1), 5)
         self.assertTrue((Interpreter().evaluate("let arr = [0,0,0,0,0]; let i = 0; while i < 5 {arr[i] = i; i = i + 1}; arr", silent=1) == np.array([0,1,2,3,4])).all())
+
+    def test_std_lib(self):
+        self.assertEqual(self.it.evaluate("max(2,3)", silent=1), 3)
+        self.assertEqual(self.it.evaluate("max(2.0,3.0)", silent=1), 3.0)
+        self.assertEqual(self.it.evaluate("min(2,3)", silent=1), 2)
+        self.assertEqual(self.it.evaluate("min(2.0,3.0)", silent=1), 2.0)
 
 
 if __name__ == "__main__":

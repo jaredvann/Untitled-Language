@@ -7,11 +7,11 @@ import llvmlite.ir as ir
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 
-class Type:
+class AbstractType:
     def __init__(
             self,
             name: str,
-            type_generics: tp.List[tp.Union[str, "Type"]] = None,
+            type_generics: tp.List[tp.Union[str, "AbstractType"]] = None,
             num_generics: tp.List[tp.Union[str, int]] = None
     ) -> None:
         self.name = name
@@ -34,30 +34,32 @@ class Type:
         return self.__repr__().__hash__()
 
     def is_abstract(self) -> bool:
-        return not self.is_concrete()
-
-    def is_concrete(self) -> bool:
-        if len(self.type_generics) == 0 and len(self.type_generics) == 0:
-            return True
-
-        if any(isinstance(t, str) or t.is_abstract() for t in self.type_generics):
-            return False
-
-        if any(isinstance(t, str) for t in self.num_generics):
-            return False
-
         return True
 
+    # def is_concrete(self) -> bool:
+    #     if len(self.type_generics) == 0 and len(self.type_generics) == 0:
+    #         return True
 
-class ConcreteType(Type):
+    #     if any(isinstance(t, str) or t.is_abstract() for t in self.type_generics):
+    #         return False
+
+    #     if any(isinstance(t, str) for t in self.num_generics):
+    #         return False
+
+    #     return True
+
+    def make_concrete(self, type_generics: tp.List["Type"], num_generics: tp.List[int]) -> "Type":
+        raise NotImplementedError
+
+
+class Type(AbstractType):
     def __init__(
             self,
             name: str,
-            type_generics: tp.List["ConcreteType"] = None,
+            type_generics: tp.List["Type"] = None,
             num_generics: tp.List[int] = None,
             ir_type: ir.Type = None,
             c_type: object = None,
-            by_ref: bool = True,
     ) -> None:
         super().__init__(name, type_generics, num_generics)
         self.ir_type = ir_type
@@ -78,15 +80,15 @@ class ConcreteType(Type):
     def __hash__(self) -> int:
         return self.__repr__().__hash__()
 
-    def is_concrete(self) -> bool:
-        return True
+    def is_abstract(self) -> bool:
+        return False
 
     def to_ref(self) -> "RefType":
         return RefType(self)
 
 
-class RefType(ConcreteType):
-    def __init__(self, type: ConcreteType) -> None:
+class RefType(Type):
+    def __init__(self, type: Type) -> None:
         self.name = "Ref"
         self.type = type
         self.ir_type = type.ir_type.as_pointer()
@@ -96,15 +98,15 @@ class RefType(ConcreteType):
         return f"Ref<{self.type}>"
 
 
-class TypeVar(Type):
+class TypeVar(AbstractType):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
     def __repr__(self) -> str:
         return f"${self.name}"
 
-    def is_concrete(self) -> bool:
-        return False
+    def is_abstract(self) -> bool:
+        return True
 
 
 class Var:
@@ -116,18 +118,36 @@ class Var:
 class AnonVar(Var):
     _counter = 0
 
-    def __init__(self, type: Type) -> None:
+    def __init__(self, type: AbstractType) -> None:
         name = alphabet[self._counter]
         self._counter += 1
 
         super().__init__(name, type)
 
 
-class FunctionType:
-    def __init__(self, name: str, arg_types: tp.List[Type], ret_type: Type, ir_body=None) -> None:
+
+class AbstractFunctionType:
+    def __init__(self, name: str, arg_types: tp.List[AbstractType], ret_type: AbstractType, ir_body=None, no_mangle=False) -> None:
         self.name = name
         self.arg_types = arg_types
         self.ret_type = ret_type
+
+        self.ir_signature = name if no_mangle else f"{name}__" + "_".join(str(a) for a in arg_types)
+
+        self.ir_body = ir_body
+
+    def __repr__(self) -> str:
+        return f"{self.name}({', '.join(str(arg) for arg in self.arg_types)})" + f" -> {self.ret_type}" if self.ret_type else ""    
+
+
+
+class FunctionType:
+    def __init__(self, name: str, arg_types: tp.List[Type], ret_type: Type, ir_body=None, no_mangle=False) -> None:
+        self.name = name
+        self.arg_types = arg_types
+        self.ret_type = ret_type
+
+        self.ir_signature = name if no_mangle else f"{name}__" + "_".join(str(a) for a in arg_types)
 
         self.ir_body = ir_body
 

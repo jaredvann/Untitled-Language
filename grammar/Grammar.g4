@@ -34,7 +34,10 @@ funcCall    : name=NAME '(' ( expr (',' expr)* )? ')';
 
 funcDecl            : 'fn' NAME '(' funcDeclArgs ')' block;
 funcDeclArgs        : (funcDeclArg (',' funcDeclArg)*)?;
-funcDeclArg         : NAME ':' NAMEU;
+funcDeclArg         : NAME ':' concreteTypeStr;
+
+concreteTypeStr             : NAMEU ('<' concreteTypeStrGenerics '>')?;
+concreteTypeStrGenerics     : (concreteTypeStr (',' concreteTypeStr)*)? (';' int_ (',' int_)*)?;
 
 parens      : '(' expr? ')';
 

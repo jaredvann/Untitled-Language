@@ -69,12 +69,11 @@ class LLVMCodeGenerator:
 
 
     def _codegen_FunctionCallTST(self, node: FunctionCallTST, lvalue=False):
-        name = node.func.name
+        name = node.func.ir_signature
 
         args = [self._codegen(arg) for arg in node.args]
 
         arg_types = [arg.type.ir_type for arg in node.args]
-        # arg_types = [(arg.type.ir_type.as_pointer() if arg.type.by_ref else arg.type.ir_type) for arg in node.args]
 
         if node.func.ir_body is not None:
             return node.func.ir_body(self, args, arg_types)
@@ -90,7 +89,7 @@ class LLVMCodeGenerator:
 
 
     def _codegen_FunctionTST(self, node: FunctionTST):
-        name = node.name
+        name = node.func.ir_signature
 
         self.scope = CodeGenScope(self.scope)
         
@@ -101,7 +100,7 @@ class LLVMCodeGenerator:
             # Otherwise create a new function
             ret_type = node.ret_type.ir_type
 
-            # by_ref return types in top level function need to be initialised
+            # not val types return types in top level function need to be initialised
             # outside the function then a reference to that returned to python
             if node.name.startswith("_io") and node.ret_type not in VAL_TYPES:
                 ret_ptr = ir.GlobalVariable(self.module, ret_type, "retval")
@@ -125,6 +124,7 @@ class LLVMCodeGenerator:
 
         if node.ret_type.name == "Null":
             self.builder.ret_void()
+
         elif node.name.startswith("_io"):
             if node.ret_type in VAL_TYPES:
                 self.builder.ret(ret_val)
@@ -135,11 +135,10 @@ class LLVMCodeGenerator:
                 self.builder.store(self.builder.load(ret_val), ret_ptr)
                 self.builder.ret(ret_ptr)
 
+        elif node.ret_type in VAL_TYPES or node.body.is_temporary or isinstance(ret_val, ir.Argument):
+            self.builder.ret(ret_val)
         else:
-            if node.ret_type in VAL_TYPES or node.body.is_temporary:
-                self.builder.ret(ret_val)
-            else:
-                self.builder.ret(self.builder.load(ret_val))
+            self.builder.ret(self.builder.load(ret_val))
 
 
         # Restore the old symbol table

@@ -3,10 +3,11 @@ import typing as tp
 import unittest
 
 from .relabel_type import relabel_type
-from typelib import ConcreteType, Type, TypeVar
+from AST import TypeAST
+from typelib import AbstractType, Type, TypeVar
 
 
-def map_types(a: Type, b: Type, symbols: dict = None, level=0) -> tp.Union[dict, bool]:
+def map_types(a: tp.Union[Type, TypeAST], b: Type, symbols: dict = None, level=0) -> tp.Union[dict, bool]:
     """
     Recursively maps types from a into b
     """
@@ -22,7 +23,7 @@ def map_types(a: Type, b: Type, symbols: dict = None, level=0) -> tp.Union[dict,
     if a.name != b.name:
         return False
 
-    # if a.name == b.name and b.is_concrete():
+    # if a.name == b.name and not b.is_abstract():
     #     return True
 
     if len(a.type_generics) != len(b.type_generics):
@@ -65,8 +66,8 @@ def map_types(a: Type, b: Type, symbols: dict = None, level=0) -> tp.Union[dict,
 
 class Tests(unittest.TestCase):
     def test(self):
-        Int = ConcreteType("Int")
-        Float = ConcreteType("Float")
+        Int = Type("Int")
+        Float = Type("Float")
 
         self.assertEqual(map_types(Int, Int), True)
 

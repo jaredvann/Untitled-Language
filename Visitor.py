@@ -147,7 +147,22 @@ class Visitor(GrammarVisitor):
 
      # Visit a parse tree produced by GrammarParser#funcDeclArgs.
     def visitFuncDeclArg(self, ctx: GrammarParser.FuncDeclArgContext):
-        return (ctx.NAME().getText(), ctx.NAMEU().getText())
+        return (ctx.NAME().getText(), self.visit(ctx.concreteTypeStr()))
+
+
+    # Visit a parse tree produced by GrammarParser#typeStr.
+    def visitConcreteTypeStr(self, ctx: GrammarParser.ConcreteTypeStrContext) -> TypeAST:
+        if ctx.concreteTypeStrGenerics() is not None:
+            tgenerics, ngenerics = self.visit(ctx.concreteTypeStrGenerics())
+        else:
+            tgenerics, ngenerics = None, None
+
+        return TypeAST(ctx.NAMEU().getText(), tgenerics, ngenerics)
+
+
+    # Visit a parse tree produced by GrammarParser#typeStrGenerics.
+    def visitConcreteTypeStrGenerics(self, ctx: GrammarParser.ConcreteTypeStrGenericsContext):
+        return [self.visit(ts) for ts in ctx.concreteTypeStr()], [int(x.getText()) for x in ctx.int_()]
 
 
     # Visit a parse tree produced by GrammarParser#parens.

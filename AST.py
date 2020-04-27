@@ -1,6 +1,6 @@
 import typing as tp
 
-from typelib import ConcreteType
+from typelib import Type
 
 
 class ASTNode:
@@ -86,7 +86,7 @@ class FunctionAST(ASTNode):
     _anonymous_function_counter = 0
     _interface_function_counter = 0
 
-    def __init__(self, name, args, body) -> None:
+    def __init__(self, name: str, args: Type, body: ASTNode) -> None:
         self.name = name
         self.args = args
         self.body = body
@@ -107,7 +107,7 @@ class FunctionAST(ASTNode):
         return self.name.startswith("_anon") or self.name.startswith("_io")
 
     def __repr__(self) -> str:
-        arg_str = ", ".join(": ".join(arg) for arg in self.args)
+        arg_str = ", ".join(f"{name}: {type_}" for name, type_ in self.args)
         return f"FunctionAST({self.name}({arg_str}))"
 
     def dump(self, indent=0) -> str:
@@ -126,6 +126,27 @@ class IntAST(ASTNode):
     def dump(self, indent=0) -> str:
         return " "*indent + self.__repr__()
 
+
+
+class TypeAST(ASTNode):
+    def __init__(self, name: str, type_generics: tp.List["TypeAST"] = None, num_generics: tp.List[int] = None) -> None:
+        self.name = name
+        self.type_generics = [] if type_generics is None else type_generics
+        self.num_generics = [] if num_generics is None else num_generics
+
+    def __repr__(self) -> str:
+        if len(self.type_generics) > 0 or len(self.num_generics) > 0:
+            gstr = f"<{','.join(str(x) for x in self.type_generics)};{','.join(str(x) for x in self.num_generics)}>"
+        else:
+            gstr = ""
+
+        return f"{self.name}{gstr}"
+
+    def dump(self, indent=0) -> str:
+        return " "*indent + f"TypeAST({self.__repr__()})"
+
+    def is_abstract(self) -> bool:
+        return False
 
 
 class VariableAST(ASTNode):

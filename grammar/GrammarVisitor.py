@@ -114,6 +114,16 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#concreteTypeStr.
+    def visitConcreteTypeStr(self, ctx:GrammarParser.ConcreteTypeStrContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#concreteTypeStrGenerics.
+    def visitConcreteTypeStrGenerics(self, ctx:GrammarParser.ConcreteTypeStrGenericsContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#parens.
     def visitParens(self, ctx:GrammarParser.ParensContext):
         return self.visitChildren(ctx)

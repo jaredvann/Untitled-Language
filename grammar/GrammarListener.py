@@ -197,6 +197,24 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#concreteTypeStr.
+    def enterConcreteTypeStr(self, ctx:GrammarParser.ConcreteTypeStrContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#concreteTypeStr.
+    def exitConcreteTypeStr(self, ctx:GrammarParser.ConcreteTypeStrContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#concreteTypeStrGenerics.
+    def enterConcreteTypeStrGenerics(self, ctx:GrammarParser.ConcreteTypeStrGenericsContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#concreteTypeStrGenerics.
+    def exitConcreteTypeStrGenerics(self, ctx:GrammarParser.ConcreteTypeStrGenericsContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#parens.
     def enterParens(self, ctx:GrammarParser.ParensContext):
         pass
