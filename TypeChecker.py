@@ -100,20 +100,19 @@ class TypeChecker:
         return ValueTST(Float, node.val)
 
 
-    # def _typecheck_ForLoopAST(self, node: ForLoopAST) -> ForLoopTST:
-    #     iterator = self._typecheck(node.iterator)
+    def _typecheck_ForLoopAST(self, node: ForLoopAST) -> ForLoopTST:
+        iterable = self._typecheck(node.iterable)
 
-    #     self.scope = Scope(self.scope)
+        self.scope = Scope(self.scope)
 
-    #     index_var = VariableTST(Int, node.index_var.name)
-    #     index_var_type = Var(node.index_var.name, Int)
-    #     self.scope.add_var(index_var_type)
+        index_var_type = Var(node.index_var, Int)
+        self.scope.add_var(index_var_type)
 
-    #     body = self._typecheck(node.body)
+        body = self._typecheck(node.body)
 
-    #     self.scope = self.scope.parent
+        self.scope = self.scope.parent
 
-    #     return ForLoopTST(body.type, index_var, iterator, body)
+        return ForLoopTST(node.index_var, iterable, body)
 
 
     def _typecheck_FunctionAST(self, node: FunctionAST) -> FunctionTST:
@@ -191,8 +190,16 @@ class TypeChecker:
         return ValueTST(Int, node.val)
 
 
-    # def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
-    #     return RangeExprTST(node.start, node.end)
+    def _typecheck_RangeExprAST(self, node: RangeExprAST) -> RangeExprTST:
+        start = self._typecheck(node.start)
+        end = self._typecheck(node.end)
+
+        if start.type != Int:
+            raise TypeCheckerException(f"Start of range type is not Int (got {start.type})")
+        if end.type != Int:
+            raise TypeCheckerException(f"End of range type is not Int (got {end.type})")
+
+        return RangeExprTST(start, end)
 
 
     def _typecheck_TypeAST(self, node: TypeAST) -> Type:

@@ -19,6 +19,7 @@ from grammar.GrammarParser import GrammarParser
 from AST import *
 from CodeGen import LLVMCodeGenerator
 from ErrorListener import ErrorListener
+from MIRGen import MIRGen
 from TST import *
 from TypeChecker import TypeChecker, TypeCheckerException
 from Visitor import Visitor
@@ -54,6 +55,7 @@ class Interpreter():
         self.typechecker = TypeChecker()
 
         # Stage 3 initialisation
+        self.mirgen = MIRGen()
 
         # Stage 4 initialisation
         self.codegen = LLVMCodeGenerator()
@@ -152,6 +154,18 @@ class Interpreter():
         ########################################################################
         # Stage 3 - MIR Conversion
 
+        if debug:
+            cprint("\n### Stage 3/5: MIR Generation ###", "blue", attrs=["bold"])
+
+        tst = self.mirgen.visit(tst)
+
+        if debug:
+            cprint("\nTST Tree Dump:", "magenta", attrs=["bold"])
+            
+            if tst.__class__ == FunctionTST and tst.is_anonymous():
+                print(tst.body.dump())
+            else:
+                print(tst.dump())
 
         ########################################################################
         # Stage 4 - LLVM Codegen
@@ -178,8 +192,8 @@ class Interpreter():
         # Optimize the module
         if optimize:
             pmb = llvm.create_pass_manager_builder()
-            pmb.opt_level = 2
-            # pmb.inlining_threshold = 1000
+            pmb.opt_level = 3
+            pmb.inlining_threshold = 100
             pm = llvm.create_module_pass_manager()
             pmb.populate(pm)
             pm.run(llvmmod)
@@ -341,9 +355,21 @@ class Tests(unittest.TestCase):
         self.assertTrue((Interpreter().evaluate("let a = [0.0,0.0,0.0]; a[1] = 4.0; a", silent=1) == np.array([0.0,4.0,0.0])).all())
         self.assertTrue((Interpreter().evaluate("let a = [0.0,0.0,0.0]; a[2] = 6.0; a", silent=1) == np.array([0.0,0.0,6.0])).all())
 
-    def test_while_loop_access(self):
+    def test_while_loop(self):
         self.assertEqual(Interpreter().evaluate("let i = 0; while i < 5 {i = i + 1}; i", silent=1), 5)
         self.assertTrue((Interpreter().evaluate("let arr = [0,0,0,0,0]; let i = 0; while i < 5 {arr[i] = i; i = i + 1}; arr", silent=1) == np.array([0,1,2,3,4])).all())
+
+    def test_range_for_loop(self):
+        # Empty range
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in 0..0 { a = a + i }; a", silent=1), 0)
+        # Positive start increasing range
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in 0..5 { a = a + i }; a", silent=1), 10)
+        # Negative start increasing range
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in (0-4)..5 { a = a + i }; a", silent=1), 0)
+
+    def test_array_for_loop(self):
+        # Array sum
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in [0,1,2,3,4] { a = a + i }; a", silent=1), 10)
 
     def test_std_lib(self):
         self.assertEqual(self.it.evaluate("max(2,3)", silent=1), 3)
@@ -351,6 +377,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(self.it.evaluate("min(2,3)", silent=1), 2)
         self.assertEqual(self.it.evaluate("min(2.0,3.0)", silent=1), 2.0)
 
+    
 
 if __name__ == "__main__":
     interpreter = Interpreter()
@@ -376,4 +403,4 @@ if __name__ == "__main__":
     else:
         for codestr in sys.argv[1:]:
             if not interpreter.err_state:
-                interpreter.evaluate(codestr, debug=1, optimize=0, catch_exceptions=0)
+                interpreter.evaluate(codestr, debug=1, optimize=1, catch_exceptions=0)

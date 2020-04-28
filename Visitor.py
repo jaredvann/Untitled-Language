@@ -31,6 +31,24 @@ class Visitor(GrammarVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#rangeExpr.
+    def visitRangeExpr(self, ctx: GrammarParser.RangeExprContext):
+        return RangeExprAST(self.visit(ctx.start), self.visit(ctx.end))
+
+
+    # Visit a parse tree produced by GrammarParser#forLoop.
+    def visitForLoop(self, ctx: GrammarParser.ForLoopContext):
+        index_var = ctx.NAME().getText()
+        
+        if ctx.rangeExpr():
+            iterable = self.visit(ctx.rangeExpr())
+        else:
+            iterable = self.visit(ctx.expr())
+        
+        body = self.visit(ctx.block())
+
+        return ForLoopAST(index_var, iterable, body)
+
 
     # Visit a parse tree produced by GrammarParser#whileLoop.
     def visitWhileLoop(self, ctx: GrammarParser.WhileLoopContext):

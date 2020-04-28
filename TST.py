@@ -34,14 +34,18 @@ class ArrayTST(TSTNode):
 
 
 class BlockTST(TSTNode):
-    def __init__(self, statements) -> None:
+    def __init__(self, statements: tp.List[TSTNode]) -> None:
         super().__init__()
         
         self.type = type
         self.statements = statements
 
-        self.type = statements[-1].type
-        self.is_temporary = statements[-1].is_temporary
+        if len(statements) > 0:
+            self.type = statements[-1].type
+            self.is_temporary = statements[-1].is_temporary
+        else:
+            self.type = Null
+            self.is_temporary = True
 
     def dump(self, indent=0) -> str:
         return " "*indent + f"BlockTST({self.type})\n" + "\n".join(val.dump(indent+2) for val in self.statements)
@@ -62,17 +66,16 @@ class DerefTST(TSTNode):
 
 
 class ForLoopTST(TSTNode):
-    def __init__(self, index_var: TSTNode, iterator: TSTNode, body: TSTNode) -> None:
+    def __init__(self, index_var: str, iterable: TSTNode, body: TSTNode) -> None:
         super().__init__()
         
         self.index_var = index_var
-        self.iterator = iterator
+        self.iterable = iterable
         self.body = body
 
     def dump(self, indent=0) -> str:
-        s = " "*indent + f"ForLoopTST({self.type})\n"
-        s += self.index_var.dump(indent + 2) + "\n"
-        s += self.iterator.dump(indent + 2) + "\n"
+        s = " "*indent + f"ForLoopTST({self.type}; {self.index_var})\n"
+        s += self.iterable.dump(indent + 2) + "\n"
         s += self.body.dump(indent + 2)
         return s
 

@@ -29,6 +29,8 @@ class LLVMCodeGenerator:
 
         self.globals = []
 
+        self.internal_var_counter = 0
+
 
     def generate_code(self, node: FunctionType):
         assert isinstance(node, FunctionTST)
@@ -58,6 +60,8 @@ class LLVMCodeGenerator:
 
 
     def _codegen_BlockTST(self, node: BlockTST):
+        ret = None
+
         for stmt in node.statements:
             ret = self._codegen(stmt)
 

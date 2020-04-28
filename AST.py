@@ -68,6 +68,19 @@ class FloatAST(ASTNode):
         return " "*indent + self.__repr__()
 
 
+class ForLoopAST(ASTNode):
+    def __init__(self, index_var: str, iterable: ASTNode, body: ASTNode) -> None:
+        self.index_var = index_var
+        self.iterable = iterable
+        self.body = body
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"ForLoopAST({self.index_var})\n"
+        s += self.iterable.dump(indent + 2) + "\n"
+        s += self.body.dump(indent + 2)
+        return s
+
+
 class FunctionCallAST(ASTNode):
     def __init__(self, name: str, args: tp.List[ASTNode]) -> None:
         self.name = name
@@ -126,6 +139,17 @@ class IntAST(ASTNode):
     def dump(self, indent=0) -> str:
         return " "*indent + self.__repr__()
 
+
+class RangeExprAST(ASTNode):
+    def __init__(self, start, end) -> None:
+        self.start = start
+        self.end = end
+
+    def dump(self, indent=0) -> str:
+        s = " "*indent + f"RangeExprAST()\n"
+        s += self.start.dump(indent + 2) + "\n"
+        s += self.end.dump(indent + 2)
+        return s
 
 
 class TypeAST(ASTNode):

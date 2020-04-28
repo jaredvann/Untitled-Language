@@ -1,12 +1,12 @@
 grammar Grammar;
 
 prog            : stmt (';' stmt)* ';'? | funcDecl;
-block           : '{' stmt (';' stmt)* ';'? '}';
+block           : '{' (stmt (';' stmt)* ';'?)? '}';
 stmt            : block | forLoop | whileLoop | varDecl | varAssign | expr;
 
 
-rangeExpr: int_ '..' int_;
-forLoop: 'for' NAME 'in' rangeExpr block;
+rangeExpr: start=term '..' end=term;
+forLoop: 'for' NAME 'in' (rangeExpr | expr) block;
 
 whileLoop: 'while' condition=expr body=block;
 
