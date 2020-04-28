@@ -4,60 +4,71 @@
 
 Inspired by Python/Rust/Julia/Swift/Others.
 
-Started implementing in Rust but fought with the borrow-checker and lost. Now in python and using the excellent Antlr4 library.
-
-Currently only has a parser and typechecker, ie. no way to execute code.
+Powered by ANTLR4 and LLVM.
 
 ## Current features:
 
-### Basic type system (3 types so far!) and variable declaration
+### Basic type system and variable declaration
 ```python
-let a = 1       # Int
-let b = 2.0     # Float
-let c = True    # Bool
+let a = 1           # Int
+let b = 2.0         # Double
+let c = True        # Bool
 ```
 
-### Const by default variables
+### Arithmetic
 ```python
-let d = 1
-d = 2           # Error!
-
-mut e = 1
-e = 2           # Fine!
+3 + 6 * 4**2        # = 99
 ```
 
-### Arithmetic (wow!)
+### Comparsions
 ```python
-3 + 6 * 4**2    # = 99
-```
-
-### Some boolean logic
-```python
-True == False   # False
+True == False       # False
+1 == 1              # True
 ```
 
 ### Math functions
 ```python
-cos(radians(90.0)) * exp(10.0, 2.0)
+cos(0.0)            # 1.0
+```
+
+### Fixed length arrays
+```python
+let x = [1,2,3]
+x[0]                # 1
+```
+
+### For loops
+```python
+let acc = 0
+for i in 0..5 {
+    acc += i
+}
+acc                 # 10
+```
+
+```python
+let prod = 1
+for i in [5,5,5] {
+    prod *= i
+}
+prod                # 125
 ```
 
 
-### Basic function polymorphism
-
- - Say the function `max` is defined as: `max(a, a) -> a` where `a` is an unknown type.
-
- - The `max` function has a requirement of `cmp(a, a) -> Ordering`.
-
- - The requirement is present as `max` uses `cmp`. (`cmp` is an all in one inequality function - see <https://doc.rust-lang.org/std/cmp/trait.Ord.html#tymethod.cmp>).
-
-- We can try `max(1, 1)`, or in type form `max(Int, Int)`.
-
-- `cmp(Int, Int)` exists so `max(1, 1)` is valid.
-
-(There are probably reasons why doing it like this is a bad idea)
-
-<!-- ### Dot-function-call notation is equivalent to passing value preceding dot as first parameter
+### Function definitions
+```python
+fn double(x: Int) {
+    x * 2
+}
+double(6)           # 12
 ```
-exp(10.0, 2.0)  # these two statements are equivalent
-10.0.exp(2.0)   # allows math-like code style and OO-like code style
-``` -->
+
+
+### Mutiple dispatch
+```python
+fn is_int(x: Int)   {True}
+fn is_int(x: Float) {False}
+
+is_int(1)           # True
+is_int(2.0)         # False
+```

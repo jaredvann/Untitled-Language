@@ -2,13 +2,18 @@ grammar Grammar;
 
 prog            : stmt (';' stmt)* ';'? | funcDecl;
 block           : '{' (stmt (';' stmt)* ';'?)? '}';
-stmt            : block | forLoop | whileLoop | varDecl | varAssign | expr;
+stmt            : block | forLoop | whileLoop | varDecl | varAssign | compoundOpAssign | expr;
 
 
 rangeExpr: start=term '..' end=term;
 forLoop: 'for' NAME 'in' (rangeExpr | expr) block;
 
 whileLoop: 'while' condition=expr body=block;
+
+// varDecl         : prefix=('let' | 'mut') NAME (':' NAMEU)? '=' expr;
+varDecl         : prefix=('let' | 'mut') name=NAME '=' value=expr;
+varAssign       : name=NAME ('[' indices=expr ']')* '=' value=expr;
+compoundOpAssign: name=NAME op=('+='|'-='|'*='|'/='|'%=') value=expr;
 
 expr:   expr 'if' expr 'else' expr              # InlineIfElseExpr
     |   expr op=('<'|'>'|'<='|'>=') expr        # OrderingExpr
@@ -23,11 +28,6 @@ expr:   expr 'if' expr 'else' expr              # InlineIfElseExpr
 termChain   : term | subscript;
 
 term        : funcCall | array | atom | parens;
-
-// varDecl         : prefix=('let' | 'mut') NAME (':' NAMEU)? '=' expr;
-varDecl         : prefix=('let' | 'mut') name=NAME '=' value=expr;
-varAssign       : name=NAME ('[' indices=expr ']')* '=' value=expr;
-
 
 funcCall    : name=NAME '(' ( expr (',' expr)* )? ')';
 // methodCall  : term '.' NAMEL '(' ( expr (',' expr)* )? ')';

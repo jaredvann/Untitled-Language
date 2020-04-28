@@ -55,6 +55,35 @@ class Visitor(GrammarVisitor):
         return WhileLoopAST(self.visit(ctx.condition), self.visit(ctx.body))
 
 
+    # Visit a parse tree produced by GrammarParser#varDecl.
+    def visitVarDecl(self, ctx: GrammarParser.VarDeclContext):
+        globalvar = ctx.parentCtx.parentCtx.__class__.__name__ == "ProgContext"
+
+        mutable = ctx.prefix.text == "mut"
+        name = ctx.name.text
+        value = self.visit(ctx.value)
+
+        return VarDeclAST(mutable, name, value, globalvar)
+
+
+    # Visit a parse tree produced by GrammarParser#varAssign.
+    def visitVarAssign(self, ctx: GrammarParser.VarAssignContext):
+        var = VariableAST(ctx.name.text)
+
+        for subscript in ctx.expr():
+            if subscript is not ctx.value:
+                var = FunctionCallAST("index", [var, self.visit(subscript)])
+
+        return VarAssignAST(var, self.visit(ctx.value))
+
+
+    # Visit a parse tree produced by GrammarParser#compoundOpAssign.
+    def visitCompoundOpAssign(self, ctx: GrammarParser.CompoundOpAssignContext):
+        var = VariableAST(ctx.name.text)
+
+        return VarAssignAST(var, FunctionCallAST(ctx.op.text[0], [var, self.visit(ctx.expr())]))
+
+
     # Visit a parse tree produced by GrammarParser#TermExpr.
     def visitTermExpr(self, ctx: GrammarParser.TermExprContext):
         return self.visitChildren(ctx)
@@ -117,28 +146,6 @@ class Visitor(GrammarVisitor):
     # Visit a parse tree produced by GrammarParser#term.
     def visitTerm(self, ctx: GrammarParser.TermContext):
         return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#varDecl.
-    def visitVarDecl(self, ctx: GrammarParser.VarDeclContext):
-        globalvar = ctx.parentCtx.parentCtx.__class__.__name__ == "ProgContext"
-
-        mutable = ctx.prefix.text == "mut"
-        name = ctx.name.text
-        value = self.visit(ctx.value)
-
-        return VarDeclAST(mutable, name, value, globalvar)
-
-
-    # Visit a parse tree produced by GrammarParser#varAssign.
-    def visitVarAssign(self, ctx: GrammarParser.VarAssignContext):
-        var = VariableAST(ctx.name.text)
-
-        for subscript in ctx.expr():
-            if subscript is not ctx.value:
-                var = FunctionCallAST("index", [var, self.visit(subscript)])
-
-        return VarAssignAST(var, self.visit(ctx.value))
 
 
     # Visit a parse tree produced by GrammarParser#funcCall.

@@ -357,19 +357,19 @@ class Tests(unittest.TestCase):
 
     def test_while_loop(self):
         self.assertEqual(Interpreter().evaluate("let i = 0; while i < 5 {i = i + 1}; i", silent=1), 5)
-        self.assertTrue((Interpreter().evaluate("let arr = [0,0,0,0,0]; let i = 0; while i < 5 {arr[i] = i; i = i + 1}; arr", silent=1) == np.array([0,1,2,3,4])).all())
+        self.assertTrue((Interpreter().evaluate("let arr = [0,0,0,0,0]; let i = 0; while i < 5 {arr[i] = i; i += 1}; arr", silent=1) == np.array([0,1,2,3,4])).all())
 
     def test_range_for_loop(self):
         # Empty range
-        self.assertEqual(Interpreter().evaluate("let a = 0; for i in 0..0 { a = a + i }; a", silent=1), 0)
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in 0..0 { a += i }; a", silent=1), 0)
         # Positive start increasing range
-        self.assertEqual(Interpreter().evaluate("let a = 0; for i in 0..5 { a = a + i }; a", silent=1), 10)
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in 0..5 { a += i }; a", silent=1), 10)
         # Negative start increasing range
-        self.assertEqual(Interpreter().evaluate("let a = 0; for i in (0-4)..5 { a = a + i }; a", silent=1), 0)
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in (0-4)..5 { a += i }; a", silent=1), 0)
 
     def test_array_for_loop(self):
         # Array sum
-        self.assertEqual(Interpreter().evaluate("let a = 0; for i in [0,1,2,3,4] { a = a + i }; a", silent=1), 10)
+        self.assertEqual(Interpreter().evaluate("let a = 0; for i in [0,1,2,3,4] { a += i }; a", silent=1), 10)
 
     def test_std_lib(self):
         self.assertEqual(self.it.evaluate("max(2,3)", silent=1), 3)

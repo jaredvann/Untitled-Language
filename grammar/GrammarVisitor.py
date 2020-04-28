@@ -39,6 +39,21 @@ class GrammarVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by GrammarParser#varDecl.
+    def visitVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#varAssign.
+    def visitVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by GrammarParser#compoundOpAssign.
+    def visitCompoundOpAssign(self, ctx:GrammarParser.CompoundOpAssignContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by GrammarParser#TermExpr.
     def visitTermExpr(self, ctx:GrammarParser.TermExprContext):
         return self.visitChildren(ctx)
@@ -81,16 +96,6 @@ class GrammarVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by GrammarParser#term.
     def visitTerm(self, ctx:GrammarParser.TermContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#varDecl.
-    def visitVarDecl(self, ctx:GrammarParser.VarDeclContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by GrammarParser#varAssign.
-    def visitVarAssign(self, ctx:GrammarParser.VarAssignContext):
         return self.visitChildren(ctx)
 
 

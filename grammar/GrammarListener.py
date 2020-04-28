@@ -62,6 +62,33 @@ class GrammarListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by GrammarParser#varDecl.
+    def enterVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#varDecl.
+    def exitVarDecl(self, ctx:GrammarParser.VarDeclContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#varAssign.
+    def enterVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#varAssign.
+    def exitVarAssign(self, ctx:GrammarParser.VarAssignContext):
+        pass
+
+
+    # Enter a parse tree produced by GrammarParser#compoundOpAssign.
+    def enterCompoundOpAssign(self, ctx:GrammarParser.CompoundOpAssignContext):
+        pass
+
+    # Exit a parse tree produced by GrammarParser#compoundOpAssign.
+    def exitCompoundOpAssign(self, ctx:GrammarParser.CompoundOpAssignContext):
+        pass
+
+
     # Enter a parse tree produced by GrammarParser#TermExpr.
     def enterTermExpr(self, ctx:GrammarParser.TermExprContext):
         pass
@@ -140,24 +167,6 @@ class GrammarListener(ParseTreeListener):
 
     # Exit a parse tree produced by GrammarParser#term.
     def exitTerm(self, ctx:GrammarParser.TermContext):
-        pass
-
-
-    # Enter a parse tree produced by GrammarParser#varDecl.
-    def enterVarDecl(self, ctx:GrammarParser.VarDeclContext):
-        pass
-
-    # Exit a parse tree produced by GrammarParser#varDecl.
-    def exitVarDecl(self, ctx:GrammarParser.VarDeclContext):
-        pass
-
-
-    # Enter a parse tree produced by GrammarParser#varAssign.
-    def enterVarAssign(self, ctx:GrammarParser.VarAssignContext):
-        pass
-
-    # Exit a parse tree produced by GrammarParser#varAssign.
-    def exitVarAssign(self, ctx:GrammarParser.VarAssignContext):
         pass
 
 
